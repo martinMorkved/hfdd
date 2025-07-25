@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MuscleGroupFilter } from "./MuscleGroupFilter";
+import { MultiSelectFilter } from "./MultiSelectFilterProps";
 
 // Define the Exercise type
 export type Exercise = {
@@ -77,10 +77,11 @@ export const ExerciseLibrary: React.FC = () => {
                     />
                     <button type="submit" className="ml-4 px-6 py-2 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold">Add Exercise</button>
                 </form>
-                <MuscleGroupFilter
-                    muscleGroups={muscleGroups}
+                <MultiSelectFilter
+                    options={muscleGroups}
                     selected={selectedGroups}
                     onSelect={setSelectedGroups}
+                    label="Muscle Groups"
                 />
                 <ul className="space-y-4">
                     {filteredExercises.map(ex => (
