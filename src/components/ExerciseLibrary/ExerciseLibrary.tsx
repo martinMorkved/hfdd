@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { MuscleGroupFilter } from "./MuscleGroupFilter";
 
 // Define the Exercise type
 export type Exercise = {
@@ -18,6 +19,15 @@ export const ExerciseLibrary: React.FC = () => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [muscleGroup, setMuscleGroup] = useState("");
+    const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+
+    // Compute unique muscle groups
+    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscleGroup).filter(Boolean))) as string[];
+
+    // Filter exercises by selected groups
+    const filteredExercises = selectedGroups.length > 0
+        ? exercises.filter(ex => ex.muscleGroup && selectedGroups.includes(ex.muscleGroup))
+        : exercises;
 
     const handleAddExercise = (e: React.FormEvent) => {
         e.preventDefault();
@@ -67,9 +77,18 @@ export const ExerciseLibrary: React.FC = () => {
                     />
                     <button type="submit" className="ml-4 px-6 py-2 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold">Add Exercise</button>
                 </form>
+                <MuscleGroupFilter
+                    muscleGroups={muscleGroups}
+                    selected={selectedGroups}
+                    onSelect={setSelectedGroups}
+                />
                 <ul className="space-y-4">
-                    {exercises.map(ex => (
-                        <li key={ex.id} className="bg-gray-800 rounded-lg p-6 flex flex-col md:flex-row md:items-center md:justify-between border border-gray-700">
+                    {filteredExercises.map(ex => (
+                        <li
+                            key={ex.id}
+                            data-filter={ex.muscleGroup}
+                            className="bg-gray-800 rounded-lg p-6 flex flex-col md:flex-row md:items-center md:justify-between border border-gray-700"
+                        >
                             <div className="flex-1 text-left">
                                 <strong className="text-lg text-white">{ex.name}</strong>
                                 {ex.muscleGroup && <span className="ml-2 text-sm text-gray-300">({ex.muscleGroup})</span>}
