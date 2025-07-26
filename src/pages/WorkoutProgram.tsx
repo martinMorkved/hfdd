@@ -2,48 +2,57 @@ import React, { useState } from "react";
 import type { Exercise } from "../data/exercises";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
 import { initialExercises } from "../data/exercises";
-
-// Types for workout program
-type WorkoutDay = {
-    id: string;
-    name: string;
-    exercises: WorkoutExercise[];
-};
-
-type WorkoutExercise = {
-    exerciseId: string;
-    exerciseName: string;
-    sets: number;
-    reps: number[];
-    comment?: string;
-    alternatives?: string[]; // Array of alternative exercise names
-};
-
-type WorkoutWeek = {
-    weekNumber: number;
-    days: WorkoutDay[];
-};
-
-type WorkoutProgram = {
-    id: string;
-    name: string;
-    description: string;
-    weeks: WorkoutWeek[];
-};
+import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
+import { useExerciseManagement } from "../hooks/useExerciseManagement";
+import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
 
 // Use shared exercise data (pretend database)
 const exercises = initialExercises;
 
-const defaultDays = [
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-];
-
 export default function WorkoutProgram() {
-    const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
-    const [currentProgram, setCurrentProgram] = useState<WorkoutProgram | null>(null);
-    const [programName, setProgramName] = useState("");
-    const [programDescription, setProgramDescription] = useState("");
-    const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
+    // Use custom hooks for state management
+    const {
+        programs,
+        currentProgram,
+        setCurrentProgram,
+        programName,
+        setProgramName,
+        programDescription,
+        setProgramDescription,
+        createNewProgram,
+        updateProgramInArray,
+        selectProgram
+    } = useWorkoutProgram();
+
+    const {
+        selectedMuscleGroups,
+        setSelectedMuscleGroups,
+        searchTerm,
+        setSearchTerm,
+        addExerciseToDay,
+        updateExerciseSets,
+        updateExerciseRep,
+        updateExerciseComment,
+        updateExerciseAlternatives,
+        removeExerciseFromDay
+    } = useExerciseManagement(currentProgram, setCurrentProgram, updateProgramInArray);
+
+    const {
+        draggedExercise,
+        dragOverDay,
+        draggedWorkoutExercise,
+        showRemoveZone,
+        handleDragStart,
+        handleDragOver,
+        handleDragLeave,
+        handleWorkoutExerciseDragStart,
+        handleRemoveZoneDragOver,
+        handleRemoveZoneDrop,
+        handleDrop
+    } = useDragAndDrop(addExerciseToDay, removeExerciseFromDay);
+
+    // Local state for modals and UI
     const [showExerciseSelector, setShowExerciseSelector] = useState(false);
     const [selectedDay, setSelectedDay] = useState<string>("");
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
@@ -52,11 +61,6 @@ export default function WorkoutProgram() {
     const [showAlternativesModal, setShowAlternativesModal] = useState(false);
     const [selectedExerciseForAlternatives, setSelectedExerciseForAlternatives] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
     const [showExerciseSidebar, setShowExerciseSidebar] = useState(true);
-    const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null);
-    const [dragOverDay, setDragOverDay] = useState<{ weekNumber: number, dayName: string } | null>(null);
-    const [draggedWorkoutExercise, setDraggedWorkoutExercise] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
-    const [showRemoveZone, setShowRemoveZone] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
 
     // Get unique muscle groups
     const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscleGroup).filter(Boolean))) as string[];
@@ -73,193 +77,9 @@ export default function WorkoutProgram() {
         return matchesSearch && matchesMuscleGroup;
     });
 
-    const createNewProgram = () => {
-        const newProgram: WorkoutProgram = {
-            id: Date.now().toString(),
-            name: programName || "New Workout Program",
-            description: programDescription,
-            weeks: [{
-                weekNumber: 1,
-                days: defaultDays.map(day => ({
-                    id: day.toLowerCase(),
-                    name: day,
-                    exercises: []
-                }))
-            }]
-        };
-        setCurrentProgram(newProgram);
-        setPrograms([...programs, newProgram]);
-        setProgramName("");
-        setProgramDescription("");
-    };
-
-
-
-    const updateExerciseSets = (weekNumber: number, dayName: string, exerciseId: string, sets: number) => {
-        if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-        if (week) {
-            const day = week.days.find(d => d.name === dayName);
-            if (day) {
-                const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-                if (exercise) {
-                    exercise.sets = sets;
-                    // Update reps array to match the new number of sets exactly
-                    const lastRep = exercise.reps[exercise.reps.length - 1] || 10;
-                    const newReps = [];
-                    for (let i = 0; i < sets; i++) {
-                        newReps.push(exercise.reps[i] || lastRep);
-                    }
-                    exercise.reps = newReps;
-                    setCurrentProgram(updatedProgram);
-                    updateProgramInArray(updatedProgram);
-                }
-            }
-        }
-    };
-
-    const updateExerciseRep = (weekNumber: number, dayName: string, exerciseId: string, repIndex: number, reps: number) => {
-        if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-        if (week) {
-            const day = week.days.find(d => d.name === dayName);
-            if (day) {
-                const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-                if (exercise && exercise.reps[repIndex] !== undefined) {
-                    exercise.reps[repIndex] = reps;
-                    setCurrentProgram(updatedProgram);
-                    updateProgramInArray(updatedProgram);
-                }
-            }
-        }
-    };
-
-    const updateExerciseComment = (weekNumber: number, dayName: string, exerciseId: string, comment: string) => {
-        if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-        if (week) {
-            const day = week.days.find(d => d.name === dayName);
-            if (day) {
-                const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-                if (exercise) {
-                    exercise.comment = comment;
-                    setCurrentProgram(updatedProgram);
-                    updateProgramInArray(updatedProgram);
-                }
-            }
-        }
-    };
-
-    const updateExerciseAlternatives = (weekNumber: number, dayName: string, exerciseId: string, alternatives: string[]) => {
-        if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-        if (week) {
-            const day = week.days.find(d => d.name === dayName);
-            if (day) {
-                const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-                if (exercise) {
-                    exercise.alternatives = alternatives;
-                    setCurrentProgram(updatedProgram);
-                    updateProgramInArray(updatedProgram);
-                }
-            }
-        }
-    };
-
     const openAlternativesModal = (weekNumber: number, dayName: string, exerciseId: string) => {
         setSelectedExerciseForAlternatives({ weekNumber, dayName, exerciseId });
         setShowAlternativesModal(true);
-    };
-
-    const handleDragStart = (exercise: Exercise) => {
-        setDraggedExercise(exercise);
-    };
-
-    const handleDragOver = (e: React.DragEvent, weekNumber: number, dayName: string) => {
-        e.preventDefault();
-        setDragOverDay({ weekNumber, dayName });
-    };
-
-    const handleDragLeave = () => {
-        setDragOverDay(null);
-    };
-
-    const handleWorkoutExerciseDragStart = (weekNumber: number, dayName: string, exerciseId: string) => {
-        setDraggedWorkoutExercise({ weekNumber, dayName, exerciseId });
-        setShowRemoveZone(true);
-    };
-
-    const handleRemoveZoneDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-    };
-
-    const handleRemoveZoneDrop = () => {
-        if (draggedWorkoutExercise) {
-            removeExerciseFromDay(
-                draggedWorkoutExercise.weekNumber,
-                draggedWorkoutExercise.dayName,
-                draggedWorkoutExercise.exerciseId
-            );
-            setDraggedWorkoutExercise(null);
-            setShowRemoveZone(false);
-        }
-    };
-
-    const handleDrop = (weekNumber: number, dayName: string) => {
-        if (draggedExercise) {
-            addExerciseToDay(draggedExercise, weekNumber, dayName);
-            setDraggedExercise(null);
-            setDragOverDay(null);
-        }
-    };
-
-    const addExerciseToDay = (exercise: Exercise, weekNumber?: number, dayName?: string) => {
-        const targetWeek = weekNumber || selectedWeek;
-        const targetDay = dayName || selectedDay;
-
-        if (!currentProgram || !targetDay || !targetWeek) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === targetWeek);
-        if (week) {
-            const dayIndex = week.days.findIndex(day => day.name === targetDay);
-
-            if (dayIndex !== -1) {
-                const newWorkoutExercise: WorkoutExercise = {
-                    exerciseId: exercise.id,
-                    exerciseName: exercise.name,
-                    sets: 3,
-                    reps: [10, 10, 10]
-                };
-
-                week.days[dayIndex].exercises.push(newWorkoutExercise);
-                setCurrentProgram(updatedProgram);
-                updateProgramInArray(updatedProgram);
-            }
-        }
-    };
-
-    const removeExerciseFromDay = (weekNumber: number, dayName: string, exerciseId: string) => {
-        if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const week = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-        if (week) {
-            const day = week.days.find(d => d.name === dayName);
-            if (day) {
-                day.exercises = day.exercises.filter(e => e.exerciseId !== exerciseId);
-                setCurrentProgram(updatedProgram);
-                updateProgramInArray(updatedProgram);
-            }
-        }
     };
 
     const addWeek = () => {
@@ -268,9 +88,6 @@ export default function WorkoutProgram() {
         if (currentProgram.weeks.length >= 1) {
             // Show prompt to copy from existing week (when adding Week 2 or later)
             setShowWeekCopyPrompt(true);
-        } else {
-            // This shouldn't happen since we always start with Week 1
-            addEmptyWeek();
         }
     };
 
@@ -279,9 +96,9 @@ export default function WorkoutProgram() {
 
         const updatedProgram = { ...currentProgram };
         const newWeekNumber = updatedProgram.weeks.length + 1;
-        const newWeek: WorkoutWeek = {
+        const newWeek = {
             weekNumber: newWeekNumber,
-            days: defaultDays.map(day => ({
+            days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => ({
                 id: day.toLowerCase(),
                 name: day,
                 exercises: []
@@ -303,7 +120,7 @@ export default function WorkoutProgram() {
         const weekToCopyFrom = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
 
         if (weekToCopyFrom) {
-            const newWeek: WorkoutWeek = {
+            const newWeek = {
                 weekNumber: newWeekNumber,
                 days: weekToCopyFrom.days.map(day => ({
                     ...day,
@@ -324,75 +141,22 @@ export default function WorkoutProgram() {
         setWeekToCopy(null);
     };
 
-    const updateProgramInArray = (updatedProgram: WorkoutProgram) => {
-        const programIndex = programs.findIndex(p => p.id === currentProgram?.id);
-        if (programIndex !== -1) {
-            const updatedPrograms = [...programs];
-            updatedPrograms[programIndex] = updatedProgram;
-            setPrograms(updatedPrograms);
-        }
-    };
-
-    const selectProgram = (program: WorkoutProgram) => {
-        setCurrentProgram(program);
-    };
-
     return (
         <div className="min-h-screen bg-gray-900">
             <div className="flex h-screen">
                 {/* Exercise Sidebar */}
-                {showExerciseSidebar && (
-                    <div className="w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-                        <div className="p-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-white">Exercise Library</h3>
-                                <button
-                                    onClick={() => setShowExerciseSidebar(false)}
-                                    className="text-gray-400 hover:text-white"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            {/* Search Input */}
-                            <div className="mb-4">
-                                <input
-                                    type="text"
-                                    placeholder="Search exercises..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
-                                />
-                            </div>
-
-                            <MultiSelectFilter
-                                options={muscleGroups}
-                                selected={selectedMuscleGroups}
-                                onSelect={setSelectedMuscleGroups}
-                                label="Filter by Muscle Group"
-                            />
-
-                            <div className="space-y-2">
-                                {filteredExercises.map(exercise => (
-                                    <div
-                                        key={exercise.id}
-                                        draggable
-                                        onDragStart={() => handleDragStart(exercise)}
-                                        className="bg-gray-700 rounded-lg p-3 cursor-move hover:bg-gray-600 transition"
-                                    >
-                                        <div className="font-medium text-white">{exercise.name}</div>
-                                        {exercise.muscleGroup && (
-                                            <div className="text-sm text-gray-300">{exercise.muscleGroup}</div>
-                                        )}
-                                        {exercise.description && (
-                                            <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <ExerciseSidebar
+                    showExerciseSidebar={showExerciseSidebar}
+                    setShowExerciseSidebar={setShowExerciseSidebar}
+                    exercises={exercises}
+                    filteredExercises={filteredExercises}
+                    muscleGroups={muscleGroups}
+                    selectedMuscleGroups={selectedMuscleGroups}
+                    setSelectedMuscleGroups={setSelectedMuscleGroups}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    onDragStart={handleDragStart}
+                />
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-y-auto relative">
@@ -623,48 +387,6 @@ export default function WorkoutProgram() {
                                 </div>
                             )}
 
-                            {/* Exercise Selector Modal */}
-                            {showExerciseSelector && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                    <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-xl font-bold text-white">Add Exercise to {selectedDay}</h3>
-                                            <button
-                                                onClick={() => setShowExerciseSelector(false)}
-                                                className="text-gray-400 hover:text-white"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-
-                                        <MultiSelectFilter
-                                            options={muscleGroups}
-                                            selected={selectedMuscleGroups}
-                                            onSelect={setSelectedMuscleGroups}
-                                            label="Filter by Muscle Group"
-                                        />
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                                            {filteredExercises.map(exercise => (
-                                                <div
-                                                    key={exercise.id}
-                                                    className="bg-gray-700 rounded p-3 cursor-pointer hover:bg-gray-600 transition"
-                                                    onClick={() => addExerciseToDay(exercise)}
-                                                >
-                                                    <div className="font-medium text-white">{exercise.name}</div>
-                                                    {exercise.muscleGroup && (
-                                                        <div className="text-sm text-gray-300">{exercise.muscleGroup}</div>
-                                                    )}
-                                                    {exercise.description && (
-                                                        <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Week Copy Prompt Modal */}
                             {showWeekCopyPrompt && (
                                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -721,23 +443,6 @@ export default function WorkoutProgram() {
                                             >
                                                 ✕
                                             </button>
-                                        </div>
-
-                                        <div className="mb-4">
-                                            <label className="text-gray-300 text-sm font-medium mb-2 block">Search Exercises:</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Search for alternative exercises..."
-                                                className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                onChange={(e) => {
-                                                    const searchTerm = e.target.value.toLowerCase();
-                                                    const filtered = exercises.filter(ex =>
-                                                        ex.name.toLowerCase().includes(searchTerm) &&
-                                                        ex.name !== selectedExerciseForAlternatives?.exerciseId
-                                                    );
-                                                    // You could add state to show filtered results
-                                                }}
-                                            />
                                         </div>
 
                                         <MultiSelectFilter
