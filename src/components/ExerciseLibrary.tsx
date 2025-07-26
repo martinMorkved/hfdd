@@ -1,18 +1,7 @@
 import React, { useState } from "react";
 import { MultiSelectFilter } from "./MultiSelectFilterProps";
-
-// Define the Exercise type
-export type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscleGroup?: string;
-};
-
-const initialExercises: Exercise[] = [
-    { id: "1", name: "Push Up", description: "A basic upper body exercise.", muscleGroup: "Chest" },
-    { id: "2", name: "Squat", description: "A basic lower body exercise.", muscleGroup: "Legs" },
-];
+import type { Exercise } from "../data/exercises";
+import { initialExercises } from "../data/exercises";
 
 export const ExerciseLibrary: React.FC = () => {
     const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
