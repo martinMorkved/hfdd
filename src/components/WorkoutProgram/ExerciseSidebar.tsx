@@ -1,5 +1,13 @@
 import React from "react";
-import type { Exercise } from "../../data/exercises";
+// Exercise type from Supabase
+type Exercise = {
+    id: string;
+    name: string;
+    description?: string;
+    muscle_group?: string;
+    created_at?: string;
+    updated_at?: string;
+};
 import { MultiSelectFilter } from "../MultiSelectFilterProps";
 
 interface ExerciseSidebarProps {
@@ -69,8 +77,8 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
                             className="bg-gray-700 rounded-lg p-3 cursor-move hover:bg-gray-600 transition"
                         >
                             <div className="font-medium text-white">{exercise.name}</div>
-                            {exercise.muscleGroup && (
-                                <div className="text-sm text-gray-300">{exercise.muscleGroup}</div>
+                            {exercise.muscle_group && (
+                                <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
                             )}
                             {exercise.description && (
                                 <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>

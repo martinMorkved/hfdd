@@ -1,5 +1,13 @@
 import { useState } from "react";
-import type { Exercise } from "../data/exercises";
+// Exercise type from Supabase
+type Exercise = {
+    id: string;
+    name: string;
+    description?: string;
+    muscle_group?: string;
+    created_at?: string;
+    updated_at?: string;
+};
 import type { WorkoutProgram, WorkoutExercise } from "./useWorkoutProgram";
 
 export const useExerciseManagement = (

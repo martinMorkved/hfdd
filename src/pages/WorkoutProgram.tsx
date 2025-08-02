@@ -1,14 +1,22 @@
 import React, { useState } from "react";
-import type { Exercise } from "../data/exercises";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
-import { initialExercises } from "../data/exercises";
-import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
+
+// Exercise type from Supabase
+type Exercise = {
+    id: string;
+    name: string;
+    description?: string;
+    muscle_group?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+import { useWorkoutProgram, type ProgramStructure } from "../hooks/useWorkoutProgram";
 import { useExerciseManagement } from "../hooks/useExerciseManagement";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
 
 // Use shared exercise data (pretend database)
-const exercises = initialExercises;
+const exercises: Exercise[] = [];
 
 export default function WorkoutProgram() {
     // Use custom hooks for state management
@@ -20,6 +28,8 @@ export default function WorkoutProgram() {
         setProgramName,
         programDescription,
         setProgramDescription,
+        programStructure,
+        setProgramStructure,
         createNewProgram,
         updateProgramInArray,
         selectProgram
@@ -63,7 +73,7 @@ export default function WorkoutProgram() {
     const [showExerciseSidebar, setShowExerciseSidebar] = useState(true);
 
     // Get unique muscle groups
-    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscleGroup).filter(Boolean))) as string[];
+    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
 
     // Filter exercises by search term and selected muscle groups
     const filteredExercises = exercises.filter(ex => {
@@ -72,7 +82,7 @@ export default function WorkoutProgram() {
             (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesMuscleGroup = selectedMuscleGroups.length === 0 ||
-            (ex.muscleGroup && selectedMuscleGroups.includes(ex.muscleGroup));
+            (ex.muscle_group && selectedMuscleGroups.includes(ex.muscle_group));
 
         return matchesSearch && matchesMuscleGroup;
     });
@@ -85,6 +95,9 @@ export default function WorkoutProgram() {
     const addWeek = () => {
         if (!currentProgram) return;
 
+        // Don't allow adding weeks for frequency-based programs
+        if (currentProgram.structure === "frequency") return;
+
         if (currentProgram.weeks.length >= 1) {
             // Show prompt to copy from existing week (when adding Week 2 or later)
             setShowWeekCopyPrompt(true);
@@ -96,13 +109,38 @@ export default function WorkoutProgram() {
 
         const updatedProgram = { ...currentProgram };
         const newWeekNumber = updatedProgram.weeks.length + 1;
-        const newWeek = {
-            weekNumber: newWeekNumber,
-            days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => ({
+
+        let newDays: { id: string; name: string; exercises: any[] }[] = [];
+
+        if (currentProgram.structure === "weekly") {
+            newDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => ({
                 id: day.toLowerCase(),
                 name: day,
                 exercises: []
-            }))
+            }));
+        } else if (currentProgram.structure === "rotating") {
+            newDays = ["Day A", "Day B", "Day C"].map(day => ({
+                id: day.toLowerCase().replace(" ", ""),
+                name: day,
+                exercises: []
+            }));
+        } else if (currentProgram.structure === "block") {
+            newDays = ["Block 1", "Block 2", "Block 3", "Block 4"].map(day => ({
+                id: day.toLowerCase().replace(" ", ""),
+                name: day,
+                exercises: []
+            }));
+        } else if (currentProgram.structure === "frequency") {
+            newDays = ["Full Body"].map(day => ({
+                id: day.toLowerCase().replace(" ", ""),
+                name: day,
+                exercises: []
+            }));
+        }
+
+        const newWeek = {
+            weekNumber: newWeekNumber,
+            days: newDays
         };
 
         updatedProgram.weeks.push(newWeek);
@@ -141,6 +179,40 @@ export default function WorkoutProgram() {
         setWeekToCopy(null);
     };
 
+    const getStructureLabel = (structure: ProgramStructure) => {
+        switch (structure) {
+            case "weekly": return "Weekly (7-day cycles)";
+            case "rotating": return "Rotating (A/B/C days)";
+            case "block": return "Block-based (Mesocycles)";
+            case "frequency": return "Frequency-based (Full body)";
+            default: return structure;
+        }
+    };
+
+    const getWeekLabel = (structure: ProgramStructure, weekNumber: number) => {
+        switch (structure) {
+            case "weekly": return `Week ${weekNumber}`;
+            case "rotating": return `Cycle ${weekNumber}`;
+            case "block": return `Block ${weekNumber}`;
+            case "frequency": return `Template`; // Single template, no week numbers
+            default: return `Week ${weekNumber}`;
+        }
+    };
+
+    const shouldShowAddWeekButton = (structure: ProgramStructure) => {
+        return structure !== "frequency"; // Don't show add week for frequency-based programs
+    };
+
+    const getAddWeekButtonText = (structure: ProgramStructure) => {
+        switch (structure) {
+            case "weekly": return "Add Week";
+            case "rotating": return "Add Cycle";
+            case "block": return "Add Block";
+            case "frequency": return "Add Week"; // This shouldn't be shown
+            default: return "Add Week";
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-900">
             <div className="flex h-screen">
@@ -174,7 +246,7 @@ export default function WorkoutProgram() {
 
                             {/* Program Selection/Creation */}
                             <div className="mb-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                     <input
                                         type="text"
                                         placeholder="Program name"
@@ -189,6 +261,16 @@ export default function WorkoutProgram() {
                                         onChange={(e) => setProgramDescription(e.target.value)}
                                         className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
                                     />
+                                    <select
+                                        value={programStructure}
+                                        onChange={(e) => setProgramStructure(e.target.value as ProgramStructure)}
+                                        className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    >
+                                        <option value="weekly">Weekly (7-day cycles)</option>
+                                        <option value="rotating">Rotating (A/B/C days)</option>
+                                        <option value="block">Block-based (Mesocycles)</option>
+                                        <option value="frequency">Single Template (Full body)</option>
+                                    </select>
                                 </div>
                                 <div className="flex justify-center">
                                     <button
@@ -229,6 +311,7 @@ export default function WorkoutProgram() {
                                         {currentProgram.description && (
                                             <p className="text-gray-300 mb-2">{currentProgram.description}</p>
                                         )}
+                                        <p className="text-cyan-400 text-sm font-medium">{getStructureLabel(currentProgram.structure)}</p>
                                     </div>
 
                                     {/* Weeks */}
@@ -236,7 +319,7 @@ export default function WorkoutProgram() {
                                         {currentProgram.weeks.map(week => (
                                             <div key={week.weekNumber} className="space-y-4">
                                                 <div className="flex items-center justify-between">
-                                                    <h3 className="text-xl font-bold text-cyan-400">Week {week.weekNumber}</h3>
+                                                    <h3 className="text-xl font-bold text-cyan-400">{getWeekLabel(currentProgram.structure, week.weekNumber)}</h3>
                                                 </div>
 
                                                 {/* Days */}
@@ -375,14 +458,16 @@ export default function WorkoutProgram() {
                                         ))}
 
                                         {/* Add Week Button */}
-                                        <div className="flex justify-center pt-4">
-                                            <button
-                                                onClick={addWeek}
-                                                className="px-6 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
-                                            >
-                                                Add Week
-                                            </button>
-                                        </div>
+                                        {shouldShowAddWeekButton(currentProgram.structure) && (
+                                            <div className="flex justify-center pt-4">
+                                                <button
+                                                    onClick={addWeek}
+                                                    className="px-6 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
+                                                >
+                                                    {getAddWeekButtonText(currentProgram.structure)}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -392,7 +477,7 @@ export default function WorkoutProgram() {
                                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                                     <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
                                         <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-xl font-bold text-white">Add New Week</h3>
+                                            <h3 className="text-xl font-bold text-white">Add New {currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}</h3>
                                             <button
                                                 onClick={() => {
                                                     setShowWeekCopyPrompt(false);
@@ -404,14 +489,14 @@ export default function WorkoutProgram() {
                                             </button>
                                         </div>
 
-                                        <p className="text-gray-300 mb-4">Would you like to copy an existing week?</p>
+                                        <p className="text-gray-300 mb-4">Would you like to copy an existing {currentProgram?.structure === "weekly" ? "week" : currentProgram?.structure === "rotating" ? "cycle" : currentProgram?.structure === "block" ? "block" : "week"}?</p>
 
                                         <div className="space-y-3 mb-6">
                                             <button
                                                 onClick={addEmptyWeek}
                                                 className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
                                             >
-                                                Start with Empty Week
+                                                Start with Empty {currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}
                                             </button>
 
                                             {currentProgram?.weeks.map(week => (
@@ -420,7 +505,7 @@ export default function WorkoutProgram() {
                                                     onClick={() => addWeekWithCopy(week.weekNumber)}
                                                     className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
                                                 >
-                                                    Copy Week {week.weekNumber}
+                                                    Copy {getWeekLabel(currentProgram.structure, week.weekNumber)}
                                                 </button>
                                             ))}
                                         </div>
@@ -479,8 +564,8 @@ export default function WorkoutProgram() {
                                                         }}
                                                     >
                                                         <div className="font-medium text-white">{exercise.name}</div>
-                                                        {exercise.muscleGroup && (
-                                                            <div className="text-sm text-gray-300">{exercise.muscleGroup}</div>
+                                                        {exercise.muscle_group && (
+                                                            <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
                                                         )}
                                                         {exercise.description && (
                                                             <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>

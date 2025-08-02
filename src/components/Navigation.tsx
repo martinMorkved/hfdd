@@ -1,7 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export const Navigation = () => {
     const location = useLocation();
+    const { user, signOut } = useAuth();
+
+    const handleSignOut = async () => {
+        await signOut();
+    };
 
     return (
         <nav className="bg-gray-800 border-b border-gray-700 shadow-lg">
@@ -29,6 +35,17 @@ export const Navigation = () => {
                                 Workout Program
                             </Link>
                         </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        <span className="text-gray-300 text-sm">
+                            {user?.email}
+                        </span>
+                        <button
+                            onClick={handleSignOut}
+                            className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition"
+                        >
+                            Sign Out
+                        </button>
                     </div>
                 </div>
             </div>
