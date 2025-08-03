@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
+import { supabase } from "../lib/supabase";
 
 // Exercise type from Supabase
 type Exercise = {
@@ -15,10 +16,37 @@ import { useExerciseManagement } from "../hooks/useExerciseManagement";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
 
-// Use shared exercise data (pretend database)
-const exercises: Exercise[] = [];
-
 export default function WorkoutProgram() {
+    // Exercise state
+    const [exercises, setExercises] = useState<Exercise[]>([]);
+    const [exercisesLoading, setExercisesLoading] = useState(true);
+
+    // Load exercises from Supabase
+    useEffect(() => {
+        loadExercises();
+    }, []);
+
+    const loadExercises = async () => {
+        try {
+            setExercisesLoading(true);
+            const { data, error } = await supabase
+                .from('exercises')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading exercises:', error);
+                return;
+            }
+
+            setExercises(data || []);
+        } catch (err) {
+            console.error('Error loading exercises:', err);
+        } finally {
+            setExercisesLoading(false);
+        }
+    };
+
     // Use custom hooks for state management
     const {
         programs,

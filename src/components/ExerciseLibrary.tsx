@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "./MultiSelectFilterProps";
 import { supabase } from "../lib/supabase";
-import { seedExercises } from "../utils/seedData";
+
 import { useAuth } from "../contexts/AuthContext";
 
 // Updated Exercise type to match database schema
@@ -117,38 +117,13 @@ export const ExerciseLibrary: React.FC = () => {
         }
     };
 
-    const handleSeedData = async () => {
-        try {
-            setLoading(true);
-            const result = await seedExercises();
 
-            if (result.success) {
-                // Reload exercises after seeding
-                await loadExercises();
-                setError(null);
-            } else {
-                setError(result.error || 'Failed to seed data');
-            }
-        } catch (err) {
-            console.error('Error seeding data:', err);
-            setError('Failed to seed data');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900">
             <div className="w-full max-w-[1100px] p-8 bg-gray-900 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold text-white">Exercise Library</h2>
-                    <button
-                        onClick={handleSeedData}
-                        disabled={loading}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg border border-green-500 hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'Loading...' : 'Add Sample Data'}
-                    </button>
                 </div>
 
                 {/* Error Message */}
