@@ -19,7 +19,6 @@ import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
 export default function WorkoutProgram() {
     // Exercise state
     const [exercises, setExercises] = useState<Exercise[]>([]);
-    const [exercisesLoading, setExercisesLoading] = useState(true);
 
     // Load exercises from Supabase
     useEffect(() => {
@@ -28,7 +27,6 @@ export default function WorkoutProgram() {
 
     const loadExercises = async () => {
         try {
-            setExercisesLoading(true);
             const { data, error } = await supabase
                 .from('exercises')
                 .select('*')
@@ -42,8 +40,6 @@ export default function WorkoutProgram() {
             setExercises(data || []);
         } catch (err) {
             console.error('Error loading exercises:', err);
-        } finally {
-            setExercisesLoading(false);
         }
     };
 
