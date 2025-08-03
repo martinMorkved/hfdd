@@ -1,0 +1,5 @@
+[33mf521938[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m removed seeder
+[33m8b84d67[m favicon and title
+[33m5b11051[m Fix TypeScript errors for deployment
+[33m29d9039[m removed unsued variables
+[33m0d06f67[m setup for superbase DB and some testing
