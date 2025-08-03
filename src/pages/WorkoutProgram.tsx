@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
 
 // Exercise type from Supabase
@@ -49,9 +49,7 @@ export default function WorkoutProgram() {
     } = useExerciseManagement(currentProgram, setCurrentProgram, updateProgramInArray);
 
     const {
-        draggedExercise,
         dragOverDay,
-        draggedWorkoutExercise,
         showRemoveZone,
         handleDragStart,
         handleDragOver,
@@ -63,9 +61,6 @@ export default function WorkoutProgram() {
     } = useDragAndDrop(addExerciseToDay, removeExerciseFromDay);
 
     // Local state for modals and UI
-    const [showExerciseSelector, setShowExerciseSelector] = useState(false);
-    const [selectedDay, setSelectedDay] = useState<string>("");
-    const [selectedWeek, setSelectedWeek] = useState<number>(1);
     const [showWeekCopyPrompt, setShowWeekCopyPrompt] = useState(false);
     const [weekToCopy, setWeekToCopy] = useState<number | null>(null);
     const [showAlternativesModal, setShowAlternativesModal] = useState(false);

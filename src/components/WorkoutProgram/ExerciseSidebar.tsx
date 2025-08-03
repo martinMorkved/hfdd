@@ -26,7 +26,6 @@ interface ExerciseSidebarProps {
 export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
     showExerciseSidebar,
     setShowExerciseSidebar,
-    exercises,
     filteredExercises,
     muscleGroups,
     selectedMuscleGroups,
