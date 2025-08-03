@@ -62,7 +62,6 @@ export default function WorkoutProgram() {
 
     // Local state for modals and UI
     const [showWeekCopyPrompt, setShowWeekCopyPrompt] = useState(false);
-    const [weekToCopy, setWeekToCopy] = useState<number | null>(null);
     const [showAlternativesModal, setShowAlternativesModal] = useState(false);
     const [selectedExerciseForAlternatives, setSelectedExerciseForAlternatives] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
     const [showExerciseSidebar, setShowExerciseSidebar] = useState(true);
@@ -142,7 +141,6 @@ export default function WorkoutProgram() {
         setCurrentProgram(updatedProgram);
         updateProgramInArray(updatedProgram);
         setShowWeekCopyPrompt(false);
-        setWeekToCopy(null);
     };
 
     const addWeekWithCopy = (weekNumber: number) => {
@@ -171,7 +169,6 @@ export default function WorkoutProgram() {
         }
 
         setShowWeekCopyPrompt(false);
-        setWeekToCopy(null);
     };
 
     const getStructureLabel = (structure: ProgramStructure) => {
@@ -476,7 +473,6 @@ export default function WorkoutProgram() {
                                             <button
                                                 onClick={() => {
                                                     setShowWeekCopyPrompt(false);
-                                                    setWeekToCopy(null);
                                                 }}
                                                 className="text-gray-400 hover:text-white"
                                             >
