@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
+import { Modal } from "../components/Modal";
 
 export default function Dashboard() {
     const { user } = useAuth();
     const { activeProgram, programs } = useWorkoutProgram();
+    const [showLogModal, setShowLogModal] = useState(false);
 
     const getStructureLabel = (structure: string) => {
         switch (structure) {
@@ -24,14 +27,23 @@ export default function Dashboard() {
         }, 0);
     };
 
-    const handleLogFromProgram = () => {
-        // TODO: Navigate to program-based workout logging
-        console.log("Log workout from active program");
+    const handleLogWorkout = () => {
+        setShowLogModal(true);
     };
 
-    const handleFreeFormLog = () => {
-        // TODO: Navigate to free-form workout logging
-        console.log("Log free-form workout");
+    const handleLogChoice = (choice: 'program' | 'freeform' | 'picker') => {
+        setShowLogModal(false);
+
+        if (choice === 'program') {
+            console.log("Log workout from active program:", activeProgram?.name);
+            // TODO: Navigate to program-based workout logging
+        } else if (choice === 'freeform') {
+            console.log("Log free-form workout");
+            // TODO: Navigate to free-form workout logging
+        } else if (choice === 'picker') {
+            console.log("Navigate to program picker");
+            // TODO: Navigate to programs page
+        }
     };
 
     return (
@@ -48,29 +60,29 @@ export default function Dashboard() {
                         </p>
                     </div>
 
-                    {/* Quick Workout Actions - Always Available */}
+                    {/* Log Workout Section - Always Available */}
                     <div className="mb-8">
                         <div className="bg-gradient-to-r from-green-900 to-emerald-900 rounded-lg border border-green-500 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <span className="px-3 py-1 bg-green-500 text-white text-sm font-semibold rounded-full">
-                                        QUICK WORKOUT
+                                        LOG WORKOUT
                                     </span>
                                     <h2 className="text-2xl font-bold text-white">Log Your Workout</h2>
                                 </div>
                             </div>
 
                             <p className="text-green-200 text-sm mb-6">
-                                Track your workout session - whether you're following a program or doing your own thing!
+                                Track your workout session and build your fitness journey!
                             </p>
 
                             <div className="flex gap-4">
                                 <button
-                                    onClick={handleFreeFormLog}
+                                    onClick={handleLogWorkout}
                                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
                                 >
-                                    <span>✏️</span>
-                                    Free-form Workout
+                                    <span>📋</span>
+                                    Log Workout
                                 </button>
                             </div>
                         </div>
@@ -110,17 +122,10 @@ export default function Dashboard() {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <button
-                                        onClick={handleLogFromProgram}
-                                        className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
-                                    >
-                                        <span>📋</span>
-                                        Log from Program
-                                    </button>
                                     <Link
                                         to="/program"
                                         state={{ selectedProgramId: activeProgram.id }}
-                                        className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-2"
+                                        className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
                                     >
                                         <span>✏️</span>
                                         Edit Program
@@ -244,6 +249,66 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Log Workout Modal */}
+            <Modal
+                isOpen={showLogModal}
+                onClose={() => setShowLogModal(false)}
+                title="Log Your Workout"
+                maxWidth="max-w-md"
+            >
+                {activeProgram ? (
+                    <div>
+                        <p className="text-gray-300 mb-6">
+                            You have <span className="font-semibold text-cyan-400">"{activeProgram.name}"</span> as your active program.
+                        </p>
+                        <p className="text-gray-300 mb-6">
+                            How would you like to log your workout?
+                        </p>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleLogChoice('program')}
+                                className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
+                            >
+                                <span>📋</span>
+                                Log from Program
+                            </button>
+                            <button
+                                onClick={() => handleLogChoice('freeform')}
+                                className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-3"
+                            >
+                                <span>✏️</span>
+                                Free-form Workout
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-gray-300 mb-6">
+                            You don't have an active program yet.
+                        </p>
+                        <p className="text-gray-300 mb-6">
+                            How would you like to proceed?
+                        </p>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleLogChoice('freeform')}
+                                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-3"
+                            >
+                                <span>✏️</span>
+                                Log Free-form Workout
+                            </button>
+                            <button
+                                onClick={() => handleLogChoice('picker')}
+                                className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
+                            >
+                                <span>📅</span>
+                                Choose a Program
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
