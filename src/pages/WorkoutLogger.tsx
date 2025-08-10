@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWorkoutLogging } from '../hooks/useWorkoutLogging';
-import type { WorkoutExercise } from '../hooks/useWorkoutLogging';
+import { useWorkoutLogging, type WorkoutExercise } from '../hooks/useWorkoutLogging';
 import { Modal } from '../components/Modal';
 import { NumberInput } from '../components/NumberInput';
 import { useAuth } from '../contexts/AuthContext';
 import { ExerciseSelector } from '../components/ExerciseSelector';
+import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
@@ -431,12 +431,19 @@ export default function WorkoutLogger() {
                                         <div key={exercise.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                                             <div className="flex items-center justify-between mb-4">
                                                 <h3 className="text-xl font-bold text-white">{exercise.exercise_name}</h3>
-                                                <button
-                                                    onClick={() => handleRemoveExercise(exercise.exercise_id)}
-                                                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
-                                                >
-                                                    Remove
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    <ExerciseHistoryButton
+                                                        exerciseId={exercise.exercise_id}
+                                                        exerciseName={exercise.exercise_name}
+                                                        variant="icon"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleRemoveExercise(exercise.exercise_id)}
+                                                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

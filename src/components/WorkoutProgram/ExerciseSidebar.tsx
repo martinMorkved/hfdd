@@ -9,6 +9,7 @@ type Exercise = {
     updated_at?: string;
 };
 import { MultiSelectFilter } from "../MultiSelectFilterProps";
+import { ExerciseHistoryButton } from "../ExerciseHistoryButton";
 
 interface ExerciseSidebarProps {
     showExerciseSidebar: boolean;
@@ -67,7 +68,7 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
                     label="Filter by Muscle Group"
                 />
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                     {filteredExercises.map(exercise => (
                         <div
                             key={exercise.id}
@@ -75,13 +76,23 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
                             onDragStart={() => onDragStart(exercise)}
                             className="bg-gray-700 rounded-lg p-3 cursor-move hover:bg-gray-600 transition"
                         >
-                            <div className="font-medium text-white">{exercise.name}</div>
-                            {exercise.muscle_group && (
-                                <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
-                            )}
-                            {exercise.description && (
-                                <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                            )}
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="font-medium text-white">{exercise.name}</div>
+                                    {exercise.muscle_group && (
+                                        <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
+                                    )}
+                                    {exercise.description && (
+                                        <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
+                                    )}
+                                </div>
+                                <ExerciseHistoryButton
+                                    exerciseId={exercise.id}
+                                    exerciseName={exercise.name}
+                                    variant="icon"
+                                    className="ml-2"
+                                />
+                            </div>
                         </div>
                     ))}
                 </div>

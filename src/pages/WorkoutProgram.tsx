@@ -17,6 +17,7 @@ import { useExerciseManagement } from "../hooks/useExerciseManagement";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
 import { Modal, ConfirmationModal } from "../components/Modal";
+import { ExerciseHistoryButton } from "../components/ExerciseHistoryButton";
 
 export default function WorkoutProgram() {
     const location = useLocation();
@@ -339,9 +340,14 @@ export default function WorkoutProgram() {
                                                                             draggable
                                                                             onDragStart={() => handleWorkoutExerciseDragStart(week.weekNumber, day.name, exercise.exerciseId)}
                                                                         >
-                                                                            <div className="flex items-center justify-between mb-4">
+                                                                            <div className="flex items-center justify-between mb-3">
                                                                                 <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
                                                                                 <div className="flex gap-2">
+                                                                                    <ExerciseHistoryButton
+                                                                                        exerciseId={exercise.exerciseId}
+                                                                                        exerciseName={exercise.exerciseName}
+                                                                                        variant="icon"
+                                                                                    />
                                                                                     <button
                                                                                         onClick={() => openAlternativesModal(week.weekNumber, day.name, exercise.exerciseId)}
                                                                                         className="text-cyan-400 hover:text-cyan-300 text-sm"

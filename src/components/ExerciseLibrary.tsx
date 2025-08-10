@@ -204,6 +204,7 @@ export const ExerciseLibrary: React.FC = () => {
                                         <ExerciseHistoryButton
                                             exerciseId={ex.id}
                                             exerciseName={ex.name}
+                                            variant="icon"
                                         />
                                         <button
                                             onClick={() => handleDelete(ex.id)}
