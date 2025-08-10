@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 import { ConfirmationModal } from "../components/Modal";
 
 export default function Programs() {
-    const { programs, loading, deleteProgram } = useWorkoutProgram();
+    const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [programToDelete, setProgramToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [showReplaceModal, setShowReplaceModal] = useState(false);
+    const [programToActivate, setProgramToActivate] = useState<{ id: string; name: string } | null>(null);
 
     const getStructureLabel = (structure: string) => {
         switch (structure) {
@@ -47,6 +49,38 @@ export default function Programs() {
                             Create New Program
                         </Link>
                     </div>
+
+                    {/* Active Program Display */}
+                    {activeProgram && (
+                        <div className="mb-8 p-6 bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className="px-3 py-1 bg-cyan-500 text-white text-sm font-semibold rounded-full">
+                                            ACTIVE PROGRAM
+                                        </span>
+                                        <h2 className="text-2xl font-bold text-white">{activeProgram.name}</h2>
+                                    </div>
+                                    {activeProgram.description && (
+                                        <p className="text-cyan-200 text-sm">{activeProgram.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-4 mt-3 text-sm text-cyan-200">
+                                        <span>{activeProgram.weeks.length} weeks</span>
+                                        <span>•</span>
+                                        <span>{activeProgram.weeks[0]?.days.length || 0} days per week</span>
+                                        <span>•</span>
+                                        <span>{getTotalExercises(activeProgram)} total exercises</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => deactivateProgram()}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                                >
+                                    Deactivate
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {programs.length === 0 ? (
                         <div className="text-center py-12">
@@ -103,6 +137,28 @@ export default function Programs() {
                                         >
                                             Edit Program
                                         </Link>
+                                        {activeProgram?.id === program.id ? (
+                                            <button
+                                                disabled
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium cursor-not-allowed"
+                                            >
+                                                Active
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    if (activeProgram) {
+                                                        setProgramToActivate({ id: program.id, name: program.name });
+                                                        setShowReplaceModal(true);
+                                                    } else {
+                                                        activateProgram(program.id);
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                                            >
+                                                Activate
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 setProgramToDelete({ id: program.id, name: program.name });
@@ -134,6 +190,26 @@ export default function Programs() {
                         message={`Are you sure you want to delete "${programToDelete?.name}"? This action cannot be undone.`}
                         confirmText="Delete"
                         confirmButtonStyle="bg-red-600 hover:bg-red-700"
+                    />
+
+                    {/* Replace Active Program Modal */}
+                    <ConfirmationModal
+                        isOpen={showReplaceModal}
+                        onClose={() => {
+                            setShowReplaceModal(false);
+                            setProgramToActivate(null);
+                        }}
+                        onConfirm={() => {
+                            if (programToActivate) {
+                                activateProgram(programToActivate.id);
+                                setShowReplaceModal(false);
+                                setProgramToActivate(null);
+                            }
+                        }}
+                        title="Replace Active Program"
+                        message={`You already have "${activeProgram?.name}" as your active program. Would you like to deactivate it and activate "${programToActivate?.name}" instead?`}
+                        confirmText="Replace Program"
+                        confirmButtonStyle="bg-green-600 hover:bg-green-700"
                     />
                 </div>
             </div>

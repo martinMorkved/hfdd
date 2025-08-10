@@ -49,6 +49,7 @@ export const useWorkoutProgram = () => {
     const { user } = useAuth();
     const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
     const [currentProgram, setCurrentProgram] = useState<WorkoutProgram | null>(null);
+    const [activeProgram, setActiveProgram] = useState<WorkoutProgram | null>(null);
     const [programName, setProgramName] = useState("");
     const [programDescription, setProgramDescription] = useState("");
     const [programStructure, setProgramStructure] = useState<ProgramStructure>("weekly");
@@ -58,6 +59,7 @@ export const useWorkoutProgram = () => {
     useEffect(() => {
         if (user) {
             loadPrograms();
+            loadActiveProgram();
         }
     }, [user]);
 
@@ -90,6 +92,34 @@ export const useWorkoutProgram = () => {
             console.error('Error loading programs:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadActiveProgram = async () => {
+        try {
+            if (!user) return;
+
+            // Get the user's active program
+            const { data: activeProgramData, error } = await supabase
+                .from('user_active_program')
+                .select('program_id')
+                .eq('user_id', user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                console.error('Error loading active program:', error);
+                return;
+            }
+
+            if (activeProgramData) {
+                // Load the complete active program
+                const completeActiveProgram = await loadCompleteProgram(activeProgramData.program_id);
+                setActiveProgram(completeActiveProgram);
+            } else {
+                setActiveProgram(null);
+            }
+        } catch (err) {
+            console.error('Error loading active program:', err);
         }
     };
 
@@ -507,6 +537,62 @@ export const useWorkoutProgram = () => {
         setCurrentProgram(program);
     };
 
+    const activateProgram = async (programId: string) => {
+        try {
+            if (!user) return;
+
+            // First, delete any existing active program for this user
+            await supabase
+                .from('user_active_program')
+                .delete()
+                .eq('user_id', user.id);
+
+            // Then insert the new active program
+            const { error } = await supabase
+                .from('user_active_program')
+                .insert({
+                    user_id: user.id,
+                    program_id: programId,
+                    activated_at: new Date().toISOString()
+                });
+
+            if (error) {
+                console.error('Error activating program:', error);
+                return;
+            }
+
+            // Update local state
+            const programToActivate = programs.find(p => p.id === programId);
+            if (programToActivate) {
+                setActiveProgram(programToActivate);
+            }
+        } catch (err) {
+            console.error('Error activating program:', err);
+        }
+    };
+
+    const deactivateProgram = async () => {
+        try {
+            if (!user) return;
+
+            // Remove the active program
+            const { error } = await supabase
+                .from('user_active_program')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (error) {
+                console.error('Error deactivating program:', error);
+                return;
+            }
+
+            // Update local state
+            setActiveProgram(null);
+        } catch (err) {
+            console.error('Error deactivating program:', err);
+        }
+    };
+
     const deleteProgram = async (programId: string) => {
         try {
             // Delete from database (cascade will handle weeks, days, exercises)
@@ -536,6 +622,7 @@ export const useWorkoutProgram = () => {
         programs,
         currentProgram,
         setCurrentProgram,
+        activeProgram,
         programName,
         setProgramName,
         programDescription,
@@ -549,6 +636,8 @@ export const useWorkoutProgram = () => {
         removeExerciseFromDay,
         addWeek,
         selectProgram,
+        activateProgram,
+        deactivateProgram,
         deleteProgram,
         loading
     };

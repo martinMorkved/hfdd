@@ -4,6 +4,7 @@ import { Navigation } from "./components/Navigation";
 import { Login } from "./components/Auth/Login";
 import WorkoutProgram from "./pages/WorkoutProgram";
 import Programs from "./pages/Programs";
+import Dashboard from "./pages/Dashboard";
 import { useAuth } from "./contexts/AuthContext";
 import "./styles/App.css";
 
@@ -29,7 +30,8 @@ function App() {
       {/* Page Content */}
       <main className="pt-6">
         <Routes>
-          <Route path="/" element={<ExerciseLibrary />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/exercises" element={<ExerciseLibrary />} />
           <Route path="/programs" element={<Programs />} />
           <Route path="/program" element={<WorkoutProgram />} />
         </Routes>
