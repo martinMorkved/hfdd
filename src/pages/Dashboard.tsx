@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
 import { Modal } from "../components/Modal";
@@ -8,6 +8,7 @@ export default function Dashboard() {
     const { user } = useAuth();
     const { activeProgram, programs } = useWorkoutProgram();
     const [showLogModal, setShowLogModal] = useState(false);
+    const navigate = useNavigate();
 
     const getStructureLabel = (structure: string) => {
         switch (structure) {
@@ -38,11 +39,9 @@ export default function Dashboard() {
             console.log("Log workout from active program:", activeProgram?.name);
             // TODO: Navigate to program-based workout logging
         } else if (choice === 'freeform') {
-            console.log("Log free-form workout");
-            // TODO: Navigate to free-form workout logging
+            navigate('/log-workout');
         } else if (choice === 'picker') {
-            console.log("Navigate to program picker");
-            // TODO: Navigate to programs page
+            navigate('/programs');
         }
     };
 

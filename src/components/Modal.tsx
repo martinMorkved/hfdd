@@ -44,6 +44,8 @@ export const Modal: React.FC<ModalProps> = ({
 
     if (!isOpen) return null;
 
+    console.log('Modal: Rendering modal with title:', title);
+
     return (
         <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"

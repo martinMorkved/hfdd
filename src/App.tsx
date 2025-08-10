@@ -5,6 +5,7 @@ import { Login } from "./components/Auth/Login";
 import WorkoutProgram from "./pages/WorkoutProgram";
 import Programs from "./pages/Programs";
 import Dashboard from "./pages/Dashboard";
+import WorkoutLogger from "./pages/WorkoutLogger";
 import { useAuth } from "./contexts/AuthContext";
 import "./styles/App.css";
 
@@ -34,6 +35,7 @@ function App() {
           <Route path="/exercises" element={<ExerciseLibrary />} />
           <Route path="/programs" element={<Programs />} />
           <Route path="/program" element={<WorkoutProgram />} />
+          <Route path="/log-workout" element={<WorkoutLogger />} />
         </Routes>
       </main>
     </div>

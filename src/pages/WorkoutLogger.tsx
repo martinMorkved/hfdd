@@ -1,0 +1,439 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useWorkoutLogging } from '../hooks/useWorkoutLogging';
+import type { WorkoutExercise } from '../hooks/useWorkoutLogging';
+import { Modal } from '../components/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import { ExerciseSelector } from '../components/ExerciseSelector';
+
+export default function WorkoutLogger() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const {
+        loading,
+        currentSession,
+        createFreeformSession,
+        addExerciseToSession,
+        updateExercise,
+        removeExerciseFromSession,
+        saveSession,
+        clearSession
+    } = useWorkoutLogging();
+
+    const [showExercisePicker, setShowExercisePicker] = useState(false);
+    const [sessionName, setSessionName] = useState(() => {
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('en-GB', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
+        });
+        const userName = user?.email?.split('@')[0] || 'Workout';
+        return `${userName}'s ${dateStr} Workout`;
+    });
+    const [showSessionModal, setShowSessionModal] = useState(false);
+    const [selectedExercise, setSelectedExercise] = useState<any>(null);
+    const [exerciseForm, setExerciseForm] = useState({
+        reps: [10],
+        weight: 0,
+        notes: ''
+    });
+
+    // Auto-create session if not exists
+    useEffect(() => {
+        if (!currentSession && !showSessionModal) {
+            setShowSessionModal(true);
+        }
+    }, [currentSession, showSessionModal]);
+
+    const handleCreateSession = async () => {
+        if (!sessionName.trim()) return;
+
+        try {
+            await createFreeformSession(sessionName);
+            setShowSessionModal(false);
+        } catch (error) {
+            console.error('Error creating session:', error);
+        }
+    };
+
+    const handleAddExercise = () => {
+        console.log('Add Exercise button clicked');
+        setShowExercisePicker(true);
+        console.log('showExercisePicker set to true');
+    };
+
+    const handleExerciseSelect = (exercise: any) => {
+        setSelectedExercise(exercise);
+        setShowExercisePicker(false);
+        setExerciseForm({
+            reps: [10],
+            weight: 0,
+            notes: ''
+        });
+    };
+
+    const handleSaveExercise = async () => {
+        if (!selectedExercise) return;
+
+        try {
+            await addExerciseToSession(
+                selectedExercise.id,
+                selectedExercise.name,
+                exerciseForm.reps.length, // Automatically calculate sets from reps array
+                exerciseForm.reps,
+                exerciseForm.weight || undefined,
+                exerciseForm.notes || undefined
+            );
+            setSelectedExercise(null);
+            setExerciseForm({
+                reps: [10],
+                weight: 0,
+                notes: ''
+            });
+        } catch (error) {
+            console.error('Error adding exercise:', error);
+        }
+    };
+
+    const handleUpdateExercise = async (exerciseId: string, updates: Partial<WorkoutExercise>) => {
+        try {
+            await updateExercise(exerciseId, updates);
+        } catch (error) {
+            console.error('Error updating exercise:', error);
+        }
+    };
+
+    const handleRemoveExercise = async (exerciseId: string) => {
+        try {
+            await removeExerciseFromSession(exerciseId);
+        } catch (error) {
+            console.error('Error removing exercise:', error);
+        }
+    };
+
+    const handleFinishWorkout = async () => {
+        try {
+            await saveSession();
+            clearSession();
+            navigate('/');
+        } catch (error) {
+            console.error('Error finishing workout:', error);
+        }
+    };
+
+    const addRepSet = () => {
+        setExerciseForm(prev => ({
+            ...prev,
+            reps: [...prev.reps, 10]
+        }));
+    };
+
+    const removeRepSet = (index: number) => {
+        setExerciseForm(prev => ({
+            ...prev,
+            reps: prev.reps.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateRep = (index: number, value: number) => {
+        setExerciseForm(prev => ({
+            ...prev,
+            reps: prev.reps.map((rep, i) => i === index ? value : rep)
+        }));
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="text-white text-xl">Loading workout logger...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-900">
+            <div className="p-8">
+                <div className="max-w-4xl mx-auto">
+                    {/* Header */}
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold text-white mb-2">
+                                    Log Your Workout
+                                </h1>
+                                <p className="text-gray-400">
+                                    {currentSession ? `Session: ${currentSession.session_name}` : 'Create a new workout session'}
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
+                                </button>
+                                {currentSession && (
+                                    <button
+                                        onClick={handleFinishWorkout}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                                    >
+                                        Finish Workout
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Session Creation Modal */}
+                    <Modal
+                        isOpen={showSessionModal}
+                        onClose={() => navigate('/')}
+                        title="Name Your Workout"
+                        maxWidth="max-w-md"
+                    >
+                        <div>
+                            <p className="text-gray-300 mb-4">
+                                We've pre-filled a name for your workout session. You can edit it or just click "Start Workout" to begin!
+                            </p>
+                            <input
+                                type="text"
+                                value={sessionName}
+                                onChange={(e) => setSessionName(e.target.value)}
+                                placeholder="e.g., Upper Body, Leg Day, Quick Cardio"
+                                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-500 focus:outline-none"
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateSession()}
+                                autoFocus
+                            />
+                            <div className="flex gap-3 mt-4">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCreateSession}
+                                    disabled={!sessionName.trim()}
+                                    className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                >
+                                    Start Workout
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* Exercise Selector Modal */}
+                    <Modal
+                        isOpen={showExercisePicker}
+                        onClose={() => setShowExercisePicker(false)}
+                        title="Choose Exercise"
+                        maxWidth="max-w-6xl"
+                    >
+                        <ExerciseSelector
+                            onExerciseSelect={handleExerciseSelect}
+                            onClose={() => setShowExercisePicker(false)}
+                        />
+                    </Modal>
+
+                    {/* Exercise Form Modal */}
+                    <Modal
+                        isOpen={!!selectedExercise}
+                        onClose={() => setSelectedExercise(null)}
+                        title={`Add ${selectedExercise?.name}`}
+                        maxWidth="max-w-md"
+                    >
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-gray-300 text-sm font-medium">
+                                        Reps per Set
+                                    </label>
+                                    <span className="text-gray-400 text-sm">
+                                        Sets: {exerciseForm.reps.length}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {exerciseForm.reps.map((rep, index) => (
+                                        <div key={index} className="flex gap-2">
+                                            <span className="text-gray-400 text-sm mt-2">Set {index + 1}:</span>
+                                            <input
+                                                type="number"
+                                                value={rep}
+                                                onChange={(e) => updateRep(index, parseInt(e.target.value) || 0)}
+                                                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                min="1"
+                                            />
+                                            {exerciseForm.reps.length > 1 && (
+                                                <button
+                                                    onClick={() => removeRepSet(index)}
+                                                    className="px-2 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addRepSet}
+                                        className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition text-sm"
+                                    >
+                                        + Add Set
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-300 text-sm font-medium mb-2">
+                                    Weight (kg)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={exerciseForm.weight}
+                                    onChange={(e) => setExerciseForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                    min="0"
+                                    step="0.5"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-300 text-sm font-medium mb-2">
+                                    Notes (optional)
+                                </label>
+                                <textarea
+                                    value={exerciseForm.notes}
+                                    onChange={(e) => setExerciseForm(prev => ({ ...prev, notes: e.target.value }))}
+                                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                    rows={3}
+                                    placeholder="Any notes about this exercise..."
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    onClick={() => setSelectedExercise(null)}
+                                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveExercise}
+                                    className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
+                                >
+                                    Add Exercise
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* Main Content */}
+                    {currentSession ? (
+                        <div>
+                            {/* Add Exercise Button */}
+                            <div className="mb-6">
+                                <button
+                                    onClick={handleAddExercise}
+                                    className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
+                                >
+                                    <span>➕</span>
+                                    Add Exercise
+                                </button>
+                            </div>
+
+                            {/* Exercises List */}
+                            <div className="space-y-4">
+                                {currentSession.exercises.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <div className="text-gray-400 text-lg mb-4">
+                                            No exercises added yet
+                                        </div>
+                                        <p className="text-gray-500">
+                                            Click "Add Exercise" to start logging your workout
+                                        </p>
+                                    </div>
+                                ) : (
+                                    currentSession.exercises.map((exercise) => (
+                                        <div key={exercise.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold text-white">{exercise.exercise_name}</h3>
+                                                <button
+                                                    onClick={() => handleRemoveExercise(exercise.exercise_id)}
+                                                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-gray-400 text-sm mb-1">Sets</label>
+                                                    <input
+                                                        type="number"
+                                                        value={exercise.sets}
+                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { sets: parseInt(e.target.value) || 0 })}
+                                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                        min="1"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-gray-400 text-sm mb-1">Weight (kg)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={exercise.weight || 0}
+                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { weight: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                        min="0"
+                                                        step="0.5"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-gray-400 text-sm mb-1">Notes</label>
+                                                    <input
+                                                        type="text"
+                                                        value={exercise.notes || ''}
+                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { notes: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                        placeholder="Optional notes..."
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4">
+                                                <label className="block text-gray-400 text-sm mb-2">Reps per Set</label>
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {exercise.reps.map((rep, repIndex) => (
+                                                        <div key={repIndex} className="flex items-center gap-1">
+                                                            <span className="text-gray-400 text-sm">Set {repIndex + 1}:</span>
+                                                            <input
+                                                                type="number"
+                                                                value={rep}
+                                                                onChange={(e) => {
+                                                                    const newReps = [...exercise.reps];
+                                                                    newReps[repIndex] = parseInt(e.target.value) || 0;
+                                                                    handleUpdateExercise(exercise.exercise_id, { reps: newReps });
+                                                                }}
+                                                                className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                min="1"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="text-gray-400 text-lg">
+                                Create a workout session to start logging
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
