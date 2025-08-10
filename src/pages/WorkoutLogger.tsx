@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkoutLogging } from '../hooks/useWorkoutLogging';
 import type { WorkoutExercise } from '../hooks/useWorkoutLogging';
 import { Modal } from '../components/Modal';
+import { NumberInput } from '../components/NumberInput';
 import { useAuth } from '../contexts/AuthContext';
 import { ExerciseSelector } from '../components/ExerciseSelector';
 
@@ -328,12 +329,11 @@ export default function WorkoutLogger() {
                                     {exerciseForm.reps.map((rep, index) => (
                                         <div key={index} className="flex gap-2">
                                             <span className="text-gray-400 text-sm mt-2">Set {index + 1}:</span>
-                                            <input
-                                                type="number"
+                                            <NumberInput
                                                 value={rep}
-                                                onChange={(e) => updateRep(index, parseInt(e.target.value) || 0)}
+                                                onChange={(value) => updateRep(index, value)}
+                                                min={1}
                                                 className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                                min="1"
                                             />
                                             {exerciseForm.reps.length > 1 && (
                                                 <button
@@ -358,13 +358,12 @@ export default function WorkoutLogger() {
                                 <label className="block text-gray-300 text-sm font-medium mb-2">
                                     Weight (kg)
                                 </label>
-                                <input
-                                    type="number"
+                                <NumberInput
                                     value={exerciseForm.weight}
-                                    onChange={(e) => setExerciseForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
+                                    onChange={(value) => setExerciseForm(prev => ({ ...prev, weight: value }))}
+                                    min={0}
+                                    step={0.5}
                                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                    min="0"
-                                    step="0.5"
                                 />
                             </div>
 
@@ -439,23 +438,21 @@ export default function WorkoutLogger() {
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div>
                                                     <label className="block text-gray-400 text-sm mb-1">Sets</label>
-                                                    <input
-                                                        type="number"
+                                                    <NumberInput
                                                         value={exercise.sets}
-                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { sets: parseInt(e.target.value) || 0 })}
+                                                        onChange={(value) => handleUpdateExercise(exercise.exercise_id, { sets: value })}
+                                                        min={1}
                                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                                        min="1"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-gray-400 text-sm mb-1">Weight (kg)</label>
-                                                    <input
-                                                        type="number"
+                                                    <NumberInput
                                                         value={exercise.weight || 0}
-                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { weight: parseFloat(e.target.value) || 0 })}
+                                                        onChange={(value) => handleUpdateExercise(exercise.exercise_id, { weight: value })}
+                                                        min={0}
+                                                        step={0.5}
                                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                                        min="0"
-                                                        step="0.5"
                                                     />
                                                 </div>
                                                 <div>
@@ -476,16 +473,15 @@ export default function WorkoutLogger() {
                                                     {exercise.reps.map((rep, repIndex) => (
                                                         <div key={repIndex} className="flex items-center gap-1">
                                                             <span className="text-gray-400 text-sm">Set {repIndex + 1}:</span>
-                                                            <input
-                                                                type="number"
+                                                            <NumberInput
                                                                 value={rep}
-                                                                onChange={(e) => {
+                                                                onChange={(value) => {
                                                                     const newReps = [...exercise.reps];
-                                                                    newReps[repIndex] = parseInt(e.target.value) || 0;
+                                                                    newReps[repIndex] = value;
                                                                     handleUpdateExercise(exercise.exercise_id, { reps: newReps });
                                                                 }}
+                                                                min={1}
                                                                 className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
-                                                                min="1"
                                                             />
                                                         </div>
                                                     ))}
