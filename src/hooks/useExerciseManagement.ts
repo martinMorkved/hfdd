@@ -28,6 +28,7 @@ export const useExerciseManagement = (
 
             if (dayIndex !== -1) {
                 const newWorkoutExercise: WorkoutExercise = {
+                    id: Date.now().toString(), // Temporary ID for local state
                     exerciseId: exercise.id,
                     exerciseName: exercise.name,
                     sets: 3,

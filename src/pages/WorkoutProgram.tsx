@@ -157,6 +157,7 @@ export default function WorkoutProgram() {
         }
 
         const newWeek = {
+            id: Date.now().toString(), // Temporary ID for local state
             weekNumber: newWeekNumber,
             days: newDays
         };
@@ -176,6 +177,7 @@ export default function WorkoutProgram() {
 
         if (weekToCopyFrom) {
             const newWeek = {
+                id: Date.now().toString(), // Temporary ID for local state
                 weekNumber: newWeekNumber,
                 days: weekToCopyFrom.days.map(day => ({
                     ...day,
