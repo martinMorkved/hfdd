@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "./MultiSelectFilterProps";
 import { supabase } from "../lib/supabase";
+import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 
 import { useAuth } from "../contexts/AuthContext";
 
@@ -118,7 +119,6 @@ export const ExerciseLibrary: React.FC = () => {
     };
 
 
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900">
             <div className="w-full max-w-[1100px] p-8 bg-gray-900 rounded-xl shadow-lg">
@@ -200,19 +200,28 @@ export const ExerciseLibrary: React.FC = () => {
                                         {ex.muscle_group && <span className="ml-2 text-sm text-gray-300">({ex.muscle_group})</span>}
                                         <div className="text-gray-200 text-sm mt-1">{ex.description}</div>
                                     </div>
-                                    <button
-                                        onClick={() => handleDelete(ex.id)}
-                                        disabled={loading}
-                                        className="mt-4 md:mt-0 md:ml-4 px-4 py-2 bg-red-600 text-white rounded-lg border border-red-500 hover:bg-red-700 transition font-semibold self-end md:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Delete
-                                    </button>
+                                    <div className="flex gap-2 mt-4 md:mt-0 md:ml-4">
+                                        <ExerciseHistoryButton
+                                            exerciseId={ex.id}
+                                            exerciseName={ex.name}
+                                        />
+                                        <button
+                                            onClick={() => handleDelete(ex.id)}
+                                            disabled={loading}
+                                            className="px-4 py-2 bg-red-600 text-white rounded-lg border border-red-500 hover:bg-red-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </li>
                             ))}
                         </ul>
                     </>
                 )}
             </div>
+
+            {/* Exercise History Modal */}
+            {/* The ExerciseHistoryButton component manages its own modal state */}
         </div>
     );
 }; 

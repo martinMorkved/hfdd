@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
+import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
 
 interface WorkoutSession {
     id: string;
@@ -13,6 +14,7 @@ interface WorkoutSession {
 
 interface WorkoutLog {
     id: string;
+    exercise_id: string;
     exercise_name: string;
     sets: number;
     reps: number[];
@@ -433,9 +435,16 @@ export default function WorkoutHistory() {
                                                         <h4 className="text-lg font-semibold text-white">
                                                             {log.exercise_name}
                                                         </h4>
-                                                        <span className="text-gray-400 text-sm">
-                                                            #{index + 1}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <ExerciseHistoryButton
+                                                                exerciseId={log.exercise_id}
+                                                                exerciseName={log.exercise_name}
+                                                                variant="icon"
+                                                            />
+                                                            <span className="text-gray-400 text-sm">
+                                                                #{index + 1}
+                                                            </span>
+                                                        </div>
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
