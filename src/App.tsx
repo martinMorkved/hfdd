@@ -6,6 +6,7 @@ import WorkoutProgram from "./pages/WorkoutProgram";
 import Programs from "./pages/Programs";
 import Dashboard from "./pages/Dashboard";
 import WorkoutLogger from "./pages/WorkoutLogger";
+import WorkoutHistory from "./pages/WorkoutHistory";
 import { useAuth } from "./contexts/AuthContext";
 import "./styles/App.css";
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="/programs" element={<Programs />} />
           <Route path="/program" element={<WorkoutProgram />} />
           <Route path="/log-workout" element={<WorkoutLogger />} />
+          <Route path="/history" element={<WorkoutHistory />} />
         </Routes>
       </main>
     </div>

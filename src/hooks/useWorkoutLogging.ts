@@ -27,26 +27,72 @@ export interface WorkoutSession {
 export function useWorkoutLogging() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [exercises, setExercises] = useState<any[]>([]);
     const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
+    const [existingSession, setExistingSession] = useState<WorkoutSession | null>(null);
 
-    // Load exercises from database
+    // Check for existing session from today when component mounts
     useEffect(() => {
-        loadExercises();
-    }, []);
+        if (user) {
+            checkForExistingSession();
+        }
+    }, [user]);
 
-    const loadExercises = async () => {
+    const checkForExistingSession = async () => {
+        if (!user) return;
+
         try {
+            const today = new Date().toISOString().split('T')[0];
             const { data, error } = await supabase
-                .from('exercises')
+                .from('workout_sessions')
                 .select('*')
-                .order('name');
+                .eq('user_id', user.id)
+                .eq('session_date', today)
+                .eq('session_type', 'freeform')
+                .order('created_at', { ascending: false })
+                .limit(1);
 
             if (error) throw error;
-            setExercises(data || []);
+
+            if (data && data.length > 0) {
+                const session = data[0];
+                // Load exercises for this session
+                const { data: logsData, error: logsError } = await supabase
+                    .from('workout_logs')
+                    .select('*')
+                    .eq('session_id', session.id)
+                    .order('exercise_order', { ascending: true });
+
+                if (logsError) throw logsError;
+
+                const exercises = (logsData || []).map(log => ({
+                    id: log.id,
+                    exercise_id: log.exercise_id,
+                    exercise_name: log.exercise_name,
+                    sets: log.sets,
+                    reps: typeof log.reps === 'string' ? JSON.parse(log.reps) : log.reps,
+                    weight: log.weight,
+                    notes: log.notes
+                }));
+
+                const existingSessionWithExercises: WorkoutSession = {
+                    id: session.id,
+                    user_id: session.user_id,
+                    session_type: session.session_type,
+                    session_name: session.session_name,
+                    session_date: session.session_date,
+                    exercises
+                };
+
+                setExistingSession(existingSessionWithExercises);
+            }
         } catch (error) {
-            console.error('Error loading exercises:', error);
+            console.error('Error checking for existing session:', error);
         }
+    };
+
+    const continueExistingSession = async (session: WorkoutSession) => {
+        setCurrentSession(session);
+        setExistingSession(null);
     };
 
     const createFreeformSession = async (sessionName: string): Promise<string> => {
@@ -81,6 +127,7 @@ export function useWorkoutLogging() {
             };
 
             setCurrentSession(newSession);
+            setExistingSession(null);
             return data.id;
         } catch (error) {
             console.error('Error creating session:', error);
@@ -213,18 +260,20 @@ export function useWorkoutLogging() {
 
     const clearSession = () => {
         setCurrentSession(null);
+        setExistingSession(null);
     };
 
     return {
         loading,
-        exercises,
         currentSession,
+        existingSession,
         createFreeformSession,
+        continueExistingSession,
         addExerciseToSession,
         updateExercise,
         removeExerciseFromSession,
         saveSession,
         clearSession,
-        loadExercises
+        checkForExistingSession
     };
 }

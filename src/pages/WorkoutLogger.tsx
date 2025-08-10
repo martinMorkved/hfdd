@@ -12,7 +12,9 @@ export default function WorkoutLogger() {
     const {
         loading,
         currentSession,
+        existingSession,
         createFreeformSession,
+        continueExistingSession,
         addExerciseToSession,
         updateExercise,
         removeExerciseFromSession,
@@ -32,6 +34,7 @@ export default function WorkoutLogger() {
         return `${userName}'s ${dateStr} Workout`;
     });
     const [showSessionModal, setShowSessionModal] = useState(false);
+    const [showExistingSessionModal, setShowExistingSessionModal] = useState(false);
     const [selectedExercise, setSelectedExercise] = useState<any>(null);
     const [exerciseForm, setExerciseForm] = useState({
         reps: [10],
@@ -39,12 +42,19 @@ export default function WorkoutLogger() {
         notes: ''
     });
 
-    // Auto-create session if not exists
+    // Check for existing session and show modal if found
     useEffect(() => {
-        if (!currentSession && !showSessionModal) {
+        if (existingSession && !currentSession && !showExistingSessionModal) {
+            setShowExistingSessionModal(true);
+        }
+    }, [existingSession, currentSession, showExistingSessionModal]);
+
+    // Auto-create session if not exists and no existing session
+    useEffect(() => {
+        if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal) {
             setShowSessionModal(true);
         }
-    }, [currentSession, showSessionModal]);
+    }, [currentSession, existingSession, showSessionModal, showExistingSessionModal]);
 
     const handleCreateSession = async () => {
         if (!sessionName.trim()) return;
@@ -55,6 +65,22 @@ export default function WorkoutLogger() {
         } catch (error) {
             console.error('Error creating session:', error);
         }
+    };
+
+    const handleContinueExistingSession = async () => {
+        if (!existingSession) return;
+
+        try {
+            await continueExistingSession(existingSession);
+            setShowExistingSessionModal(false);
+        } catch (error) {
+            console.error('Error continuing session:', error);
+        }
+    };
+
+    const handleStartNewSession = () => {
+        setShowExistingSessionModal(false);
+        setShowSessionModal(true);
     };
 
     const handleAddExercise = () => {
@@ -80,7 +106,7 @@ export default function WorkoutLogger() {
             await addExerciseToSession(
                 selectedExercise.id,
                 selectedExercise.name,
-                exerciseForm.reps.length, // Automatically calculate sets from reps array
+                exerciseForm.reps.length,
                 exerciseForm.reps,
                 exerciseForm.weight || undefined,
                 exerciseForm.notes || undefined
@@ -184,6 +210,51 @@ export default function WorkoutLogger() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Existing Session Modal */}
+                    <Modal
+                        isOpen={showExistingSessionModal}
+                        onClose={() => navigate('/')}
+                        title="Continue Today's Workout?"
+                        maxWidth="max-w-md"
+                    >
+                        <div>
+                            <p className="text-gray-300 mb-4">
+                                You already have a workout session from today:
+                            </p>
+                            <div className="bg-gray-700 rounded-lg p-4 mb-6">
+                                <div className="font-semibold text-white">
+                                    {existingSession?.session_name}
+                                </div>
+                                <div className="text-gray-400 text-sm">
+                                    {existingSession?.exercises.length} exercises logged
+                                </div>
+                            </div>
+                            <p className="text-gray-300 mb-6">
+                                Would you like to continue this session or start a new one?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleStartNewSession}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                >
+                                    New Session
+                                </button>
+                                <button
+                                    onClick={handleContinueExistingSession}
+                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
 
                     {/* Session Creation Modal */}
                     <Modal

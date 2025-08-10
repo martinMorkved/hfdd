@@ -54,6 +54,15 @@ export const Navigation = () => {
                             >
                                 Create Program
                             </Link>
+                            <Link
+                                to="/history"
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${location.pathname === "/history"
+                                    ? "bg-cyan-600 text-white"
+                                    : "text-gray-300 hover:text-white hover:bg-gray-700"
+                                    }`}
+                            >
+                                History
+                            </Link>
                         </div>
                     </div>
                     {activeProgram && (
