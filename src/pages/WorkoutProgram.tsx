@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
 import { supabase } from "../lib/supabase";
 
@@ -15,10 +16,15 @@ import { useWorkoutProgram, type ProgramStructure } from "../hooks/useWorkoutPro
 import { useExerciseManagement } from "../hooks/useExerciseManagement";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
+import { Modal, ConfirmationModal } from "../components/Modal";
 
 export default function WorkoutProgram() {
+    const location = useLocation();
+    const selectedProgramId = location.state?.selectedProgramId;
+
     // Exercise state
     const [exercises, setExercises] = useState<Exercise[]>([]);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Load exercises from Supabase
     useEffect(() => {
@@ -47,7 +53,6 @@ export default function WorkoutProgram() {
     const {
         programs,
         currentProgram,
-        setCurrentProgram,
         programName,
         setProgramName,
         programDescription,
@@ -55,22 +60,34 @@ export default function WorkoutProgram() {
         programStructure,
         setProgramStructure,
         createNewProgram,
-        updateProgramInArray,
-        selectProgram
+        addExerciseToDay,
+        updateExercise,
+        removeExerciseFromDay,
+        addWeek,
+        selectProgram,
+        deleteProgram
     } = useWorkoutProgram();
+
+    // Auto-select program if coming from Programs page
+    useEffect(() => {
+        if (selectedProgramId && programs.length > 0) {
+            const programToSelect = programs.find(p => p.id === selectedProgramId);
+            if (programToSelect) {
+                selectProgram(programToSelect);
+            }
+        }
+    }, [selectedProgramId, programs, selectProgram]);
 
     const {
         selectedMuscleGroups,
         setSelectedMuscleGroups,
         searchTerm,
         setSearchTerm,
-        addExerciseToDay,
         updateExerciseSets,
         updateExerciseRep,
         updateExerciseComment,
-        updateExerciseAlternatives,
-        removeExerciseFromDay
-    } = useExerciseManagement(currentProgram, setCurrentProgram, updateProgramInArray);
+        updateExerciseAlternatives
+    } = useExerciseManagement(currentProgram, addExerciseToDay, updateExercise, removeExerciseFromDay);
 
     const {
         dragOverDay,
@@ -110,7 +127,7 @@ export default function WorkoutProgram() {
         setShowAlternativesModal(true);
     };
 
-    const addWeek = () => {
+    const handleAddWeek = () => {
         if (!currentProgram) return;
 
         // Don't allow adding weeks for frequency-based programs
@@ -124,76 +141,13 @@ export default function WorkoutProgram() {
 
     const addEmptyWeek = () => {
         if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const newWeekNumber = updatedProgram.weeks.length + 1;
-
-        let newDays: { id: string; name: string; exercises: any[] }[] = [];
-
-        if (currentProgram.structure === "weekly") {
-            newDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => ({
-                id: day.toLowerCase(),
-                name: day,
-                exercises: []
-            }));
-        } else if (currentProgram.structure === "rotating") {
-            newDays = ["Day A", "Day B", "Day C"].map(day => ({
-                id: day.toLowerCase().replace(" ", ""),
-                name: day,
-                exercises: []
-            }));
-        } else if (currentProgram.structure === "block") {
-            newDays = ["Block 1", "Block 2", "Block 3", "Block 4"].map(day => ({
-                id: day.toLowerCase().replace(" ", ""),
-                name: day,
-                exercises: []
-            }));
-        } else if (currentProgram.structure === "frequency") {
-            newDays = ["Full Body"].map(day => ({
-                id: day.toLowerCase().replace(" ", ""),
-                name: day,
-                exercises: []
-            }));
-        }
-
-        const newWeek = {
-            id: Date.now().toString(), // Temporary ID for local state
-            weekNumber: newWeekNumber,
-            days: newDays
-        };
-
-        updatedProgram.weeks.push(newWeek);
-        setCurrentProgram(updatedProgram);
-        updateProgramInArray(updatedProgram);
+        addWeek(); // Use the database function
         setShowWeekCopyPrompt(false);
     };
 
     const addWeekWithCopy = (weekNumber: number) => {
         if (!currentProgram) return;
-
-        const updatedProgram = { ...currentProgram };
-        const newWeekNumber = updatedProgram.weeks.length + 1;
-        const weekToCopyFrom = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-
-        if (weekToCopyFrom) {
-            const newWeek = {
-                id: Date.now().toString(), // Temporary ID for local state
-                weekNumber: newWeekNumber,
-                days: weekToCopyFrom.days.map(day => ({
-                    ...day,
-                    exercises: day.exercises.map(exercise => ({
-                        ...exercise,
-                        exerciseId: `${exercise.exerciseId}_${newWeekNumber}`, // Make unique ID
-                        reps: [...exercise.reps] // Copy the reps array
-                    }))
-                }))
-            };
-
-            updatedProgram.weeks.push(newWeek);
-            setCurrentProgram(updatedProgram);
-            updateProgramInArray(updatedProgram);
-        }
-
+        addWeek(weekNumber); // Use the database function with copy parameter
         setShowWeekCopyPrompt(false);
     };
 
@@ -253,7 +207,7 @@ export default function WorkoutProgram() {
                     <div className="p-8">
                         <div className="max-w-[1100px] mx-auto">
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold text-white">Workout Program Builder</h2>
+                                <h2 className="text-3xl font-bold text-white">Create Program</h2>
                                 <button
                                     onClick={() => setShowExerciseSidebar(!showExerciseSidebar)}
                                     className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
@@ -325,7 +279,15 @@ export default function WorkoutProgram() {
                             {currentProgram && (
                                 <div className="space-y-6">
                                     <div className="text-center">
-                                        <h3 className="text-2xl font-bold text-white mb-2">{currentProgram.name}</h3>
+                                        <div className="flex items-center justify-center gap-4 mb-4">
+                                            <h3 className="text-2xl font-bold text-white">{currentProgram.name}</h3>
+                                            <button
+                                                onClick={() => setShowDeleteModal(true)}
+                                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                                            >
+                                                Delete Program
+                                            </button>
+                                        </div>
                                         {currentProgram.description && (
                                             <p className="text-gray-300 mb-2">{currentProgram.description}</p>
                                         )}
@@ -479,7 +441,7 @@ export default function WorkoutProgram() {
                                         {shouldShowAddWeekButton(currentProgram.structure) && (
                                             <div className="flex justify-center pt-4">
                                                 <button
-                                                    onClick={addWeek}
+                                                    onClick={handleAddWeek}
                                                     className="px-6 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
                                                 >
                                                     {getAddWeekButtonText(currentProgram.structure)}
@@ -491,120 +453,103 @@ export default function WorkoutProgram() {
                             )}
 
                             {/* Week Copy Prompt Modal */}
-                            {showWeekCopyPrompt && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                    <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-xl font-bold text-white">Add New {currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}</h3>
-                                            <button
-                                                onClick={() => {
-                                                    setShowWeekCopyPrompt(false);
-                                                }}
-                                                className="text-gray-400 hover:text-white"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
+                            <Modal
+                                isOpen={showWeekCopyPrompt}
+                                onClose={() => setShowWeekCopyPrompt(false)}
+                                title={`Add New ${currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}`}
+                            >
+                                <p className="text-gray-300 mb-4">
+                                    Would you like to copy an existing {currentProgram?.structure === "weekly" ? "week" : currentProgram?.structure === "rotating" ? "cycle" : currentProgram?.structure === "block" ? "block" : "week"}?
+                                </p>
 
-                                        <p className="text-gray-300 mb-4">Would you like to copy an existing {currentProgram?.structure === "weekly" ? "week" : currentProgram?.structure === "rotating" ? "cycle" : currentProgram?.structure === "block" ? "block" : "week"}?</p>
+                                <div className="space-y-3 mb-6">
+                                    <button
+                                        onClick={addEmptyWeek}
+                                        className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
+                                    >
+                                        Start with Empty {currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}
+                                    </button>
 
-                                        <div className="space-y-3 mb-6">
-                                            <button
-                                                onClick={addEmptyWeek}
-                                                className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
-                                            >
-                                                Start with Empty {currentProgram?.structure === "weekly" ? "Week" : currentProgram?.structure === "rotating" ? "Cycle" : currentProgram?.structure === "block" ? "Block" : "Week"}
-                                            </button>
-
-                                            {currentProgram?.weeks.map(week => (
-                                                <button
-                                                    key={week.weekNumber}
-                                                    onClick={() => addWeekWithCopy(week.weekNumber)}
-                                                    className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
-                                                >
-                                                    Copy {getWeekLabel(currentProgram.structure, week.weekNumber)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    {currentProgram?.weeks.map(week => (
+                                        <button
+                                            key={week.weekNumber}
+                                            onClick={() => addWeekWithCopy(week.weekNumber)}
+                                            className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
+                                        >
+                                            Copy {getWeekLabel(currentProgram.structure, week.weekNumber)}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
+                            </Modal>
 
                             {/* Alternatives Modal */}
-                            {showAlternativesModal && selectedExerciseForAlternatives && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                    <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-xl font-bold text-white">Add Alternative Exercises</h3>
-                                            <button
-                                                onClick={() => {
-                                                    setShowAlternativesModal(false);
-                                                    setSelectedExerciseForAlternatives(null);
-                                                }}
-                                                className="text-gray-400 hover:text-white"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
+                            <Modal
+                                isOpen={showAlternativesModal}
+                                onClose={() => {
+                                    setShowAlternativesModal(false);
+                                    setSelectedExerciseForAlternatives(null);
+                                }}
+                                title="Add Alternative Exercises"
+                                maxWidth="max-w-2xl"
+                            >
+                                <div className="max-h-[80vh] overflow-y-auto">
+                                    <MultiSelectFilter
+                                        options={muscleGroups}
+                                        selected={selectedMuscleGroups}
+                                        onSelect={setSelectedMuscleGroups}
+                                        label="Filter by Muscle Group"
+                                    />
 
-                                        <MultiSelectFilter
-                                            options={muscleGroups}
-                                            selected={selectedMuscleGroups}
-                                            onSelect={setSelectedMuscleGroups}
-                                            label="Filter by Muscle Group"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 mb-6">
+                                        {filteredExercises
+                                            .filter(ex => ex.name !== selectedExerciseForAlternatives?.exerciseId)
+                                            .map(exercise => (
+                                                <div
+                                                    key={exercise.id}
+                                                    className="bg-gray-700 rounded p-3 cursor-pointer hover:bg-gray-600 transition"
+                                                    onClick={() => {
+                                                        const currentExercise = currentProgram?.weeks
+                                                            .find(w => w.weekNumber === selectedExerciseForAlternatives?.weekNumber)
+                                                            ?.days.find(d => d.name === selectedExerciseForAlternatives?.dayName)
+                                                            ?.exercises.find(e => e.exerciseId === selectedExerciseForAlternatives?.exerciseId);
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 mb-6">
-                                            {filteredExercises
-                                                .filter(ex => ex.name !== selectedExerciseForAlternatives?.exerciseId)
-                                                .map(exercise => (
-                                                    <div
-                                                        key={exercise.id}
-                                                        className="bg-gray-700 rounded p-3 cursor-pointer hover:bg-gray-600 transition"
-                                                        onClick={() => {
-                                                            const currentExercise = currentProgram?.weeks
-                                                                .find(w => w.weekNumber === selectedExerciseForAlternatives?.weekNumber)
-                                                                ?.days.find(d => d.name === selectedExerciseForAlternatives?.dayName)
-                                                                ?.exercises.find(e => e.exerciseId === selectedExerciseForAlternatives?.exerciseId);
+                                                        const currentAlternatives = currentExercise?.alternatives || [];
+                                                        const newAlternatives = [...currentAlternatives, exercise.name];
 
-                                                            const currentAlternatives = currentExercise?.alternatives || [];
-                                                            const newAlternatives = [...currentAlternatives, exercise.name];
+                                                        if (selectedExerciseForAlternatives) {
+                                                            updateExerciseAlternatives(
+                                                                selectedExerciseForAlternatives.weekNumber,
+                                                                selectedExerciseForAlternatives.dayName,
+                                                                selectedExerciseForAlternatives.exerciseId,
+                                                                newAlternatives
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="font-medium text-white">{exercise.name}</div>
+                                                    {exercise.muscle_group && (
+                                                        <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
+                                                    )}
+                                                    {exercise.description && (
+                                                        <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                    </div>
 
-                                                            if (selectedExerciseForAlternatives) {
-                                                                updateExerciseAlternatives(
-                                                                    selectedExerciseForAlternatives.weekNumber,
-                                                                    selectedExerciseForAlternatives.dayName,
-                                                                    selectedExerciseForAlternatives.exerciseId,
-                                                                    newAlternatives
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <div className="font-medium text-white">{exercise.name}</div>
-                                                        {exercise.muscle_group && (
-                                                            <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
-                                                        )}
-                                                        {exercise.description && (
-                                                            <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                        </div>
-
-                                        <div className="flex justify-end gap-3">
-                                            <button
-                                                onClick={() => {
-                                                    setShowAlternativesModal(false);
-                                                    setSelectedExerciseForAlternatives(null);
-                                                }}
-                                                className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
-                                            >
-                                                Done
-                                            </button>
-                                        </div>
+                                    <div className="flex justify-end gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setShowAlternativesModal(false);
+                                                setSelectedExerciseForAlternatives(null);
+                                            }}
+                                            className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
+                                        >
+                                            Done
+                                        </button>
                                     </div>
                                 </div>
-                            )}
+                            </Modal>
                         </div>
                     </div>
 
@@ -622,6 +567,21 @@ export default function WorkoutProgram() {
                             </div>
                         </div>
                     )}
+
+                    {/* Delete Confirmation Modal */}
+                    <ConfirmationModal
+                        isOpen={showDeleteModal}
+                        onClose={() => setShowDeleteModal(false)}
+                        onConfirm={() => {
+                            if (currentProgram) {
+                                deleteProgram(currentProgram.id);
+                            }
+                        }}
+                        title="Delete Program"
+                        message={`Are you sure you want to delete "${currentProgram?.name}"? This action cannot be undone.`}
+                        confirmText="Delete"
+                        confirmButtonStyle="bg-red-600 hover:bg-red-700"
+                    />
                 </div>
             </div>
         </div>

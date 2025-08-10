@@ -26,13 +26,22 @@ export const Navigation = () => {
                                 Exercise Library
                             </Link>
                             <Link
+                                to="/programs"
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${location.pathname === "/programs"
+                                    ? "bg-cyan-600 text-white"
+                                    : "text-gray-300 hover:text-white hover:bg-gray-700"
+                                    }`}
+                            >
+                                Programs
+                            </Link>
+                            <Link
                                 to="/program"
                                 className={`px-3 py-2 rounded-lg text-sm font-medium transition ${location.pathname === "/program"
                                     ? "bg-cyan-600 text-white"
                                     : "text-gray-300 hover:text-white hover:bg-gray-700"
                                     }`}
                             >
-                                Workout Program
+                                Create Program
                             </Link>
                         </div>
                     </div>
