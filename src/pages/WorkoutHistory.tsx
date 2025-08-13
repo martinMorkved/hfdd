@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
@@ -16,13 +17,14 @@ interface WorkoutLog {
     id: string;
     exercise_id: string;
     exercise_name: string;
-    sets: number;
-    reps: number[];
-    weight?: number;
+    sets_completed: number;
+    reps_per_set: number[];
+    weight_per_set: number[];
     notes?: string;
 }
 
 export default function WorkoutHistory() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [sessions, setSessions] = useState<WorkoutSession[]>([]);
     const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
@@ -38,6 +40,7 @@ export default function WorkoutHistory() {
     const [editLoading, setEditLoading] = useState(false);
     const [showSelectiveMergeModal, setShowSelectiveMergeModal] = useState(false);
     const [selectedSessionsForMerge, setSelectedSessionsForMerge] = useState<Set<string>>(new Set());
+
 
     useEffect(() => {
         loadWorkoutSessions();
@@ -74,13 +77,35 @@ export default function WorkoutHistory() {
 
             if (error) throw error;
 
-            // Parse the reps JSON for each log
-            const logsWithParsedReps = (data || []).map(log => ({
-                ...log,
-                reps: typeof log.reps === 'string' ? JSON.parse(log.reps) : log.reps
-            }));
+            // Parse the reps and weights JSON for each log
+            const logsWithParsedData = (data || []).map(log => {
+                let parsedReps: number[] = [];
+                let parsedWeights: number[] = [];
 
-            setSessionLogs(logsWithParsedReps);
+                try {
+                    if (typeof log.reps_per_set === 'string') {
+                        parsedReps = JSON.parse(log.reps_per_set);
+                    } else if (Array.isArray(log.reps_per_set)) {
+                        parsedReps = log.reps_per_set;
+                    }
+
+                    if (typeof log.weight_per_set === 'string') {
+                        parsedWeights = JSON.parse(log.weight_per_set);
+                    } else if (Array.isArray(log.weight_per_set)) {
+                        parsedWeights = log.weight_per_set;
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing data:', parseError);
+                }
+
+                return {
+                    ...log,
+                    reps_per_set: parsedReps,
+                    weight_per_set: parsedWeights
+                };
+            });
+
+            setSessionLogs(logsWithParsedData);
         } catch (error) {
             console.error('Error loading session logs:', error);
         } finally {
@@ -286,6 +311,63 @@ export default function WorkoutHistory() {
         }
     };
 
+
+
+    const startEditingSession = async () => {
+        if (!selectedSession) return;
+
+        try {
+            // Load the session data with exercises
+            const { data: logsData, error } = await supabase
+                .from('workout_logs')
+                .select('*')
+                .eq('session_id', selectedSession.id)
+                .order('exercise_order', { ascending: true });
+
+            if (error) throw error;
+
+            const exercises = (logsData || []).map(log => ({
+                id: log.id,
+                exercise_id: log.exercise_id,
+                exercise_name: log.exercise_name,
+                sets: log.sets_completed,
+                reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
+                weight: log.weight_per_set && log.weight_per_set.length > 0 ? log.weight_per_set[0] : null,
+                notes: log.notes
+            }));
+
+            const sessionData = {
+                id: selectedSession.id,
+                user_id: user!.id,
+                session_type: selectedSession.session_type,
+                session_name: selectedSession.session_name,
+                session_date: selectedSession.session_date,
+                exercises
+            };
+
+            // Navigate to WorkoutLogger with session data
+            console.log('🚀 Navigating to edit session:', {
+                sessionId: selectedSession.id,
+                sessionName: selectedSession.session_name,
+                sessionType: selectedSession.session_type,
+                exercisesCount: exercises.length,
+                exercises: exercises
+            });
+
+            navigate('/log-workout', {
+                state: {
+                    editSession: sessionData
+                }
+            });
+        } catch (error) {
+            console.error('Error loading session for editing:', error);
+        }
+    };
+
+
+
+
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -405,6 +487,12 @@ export default function WorkoutHistory() {
                                             >
                                                 Edit Name
                                             </button>
+                                            <button
+                                                onClick={startEditingSession}
+                                                className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700 transition"
+                                            >
+                                                Edit Workout
+                                            </button>
                                             <div className="text-right">
                                                 <div className="text-sm text-gray-400">Session Type</div>
                                                 <div className="text-white font-semibold">
@@ -429,39 +517,35 @@ export default function WorkoutHistory() {
                                             <h3 className="text-lg font-semibold text-white mb-4">
                                                 Exercises ({sessionLogs.length})
                                             </h3>
-                                            {sessionLogs.map((log, index) => (
-                                                <div key={log.id} className="bg-gray-700 rounded-lg p-4">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <h4 className="text-lg font-semibold text-white">
-                                                            {log.exercise_name}
-                                                        </h4>
-                                                        <div className="flex items-center gap-2">
+
+                                            {sessionLogs.map((log) => (
+                                                <div key={log.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-xl font-bold text-white">{log.exercise_name}</h3>
+                                                        <div className="flex gap-2">
                                                             <ExerciseHistoryButton
                                                                 exerciseId={log.exercise_id}
                                                                 exerciseName={log.exercise_name}
                                                                 variant="icon"
                                                             />
-                                                            <span className="text-gray-400 text-sm">
-                                                                #{index + 1}
-                                                            </span>
                                                         </div>
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                                         <div>
                                                             <span className="text-gray-400">Sets:</span>
-                                                            <span className="text-white ml-2">{log.sets}</span>
+                                                            <span className="text-white ml-2">{log.sets_completed}</span>
                                                         </div>
                                                         <div>
                                                             <span className="text-gray-400">Weight:</span>
                                                             <span className="text-white ml-2">
-                                                                {log.weight ? `${log.weight} kg` : 'Bodyweight'}
+                                                                {log.weight_per_set && log.weight_per_set.length > 0 ? `${log.weight_per_set[0]} kg` : 'Bodyweight'}
                                                             </span>
                                                         </div>
                                                         <div>
                                                             <span className="text-gray-400">Reps:</span>
                                                             <span className="text-white ml-2">
-                                                                {log.reps.join(', ')}
+                                                                {log.reps_per_set ? log.reps_per_set.join(', ') : 'N/A'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -671,6 +755,8 @@ export default function WorkoutHistory() {
                     </div>
                 </div>
             </Modal>
+
+
         </div>
     );
 }

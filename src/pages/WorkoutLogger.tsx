@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutLogging, type WorkoutExercise } from '../hooks/useWorkoutLogging';
 import { Modal } from '../components/Modal';
 import { NumberInput } from '../components/NumberInput';
@@ -9,6 +9,7 @@ import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const {
         loading,
@@ -43,23 +44,36 @@ export default function WorkoutLogger() {
         notes: ''
     });
 
+    // Check for edit session from WorkoutHistory
+    useEffect(() => {
+        const editSession = location.state?.editSession;
+        console.log('📥 WorkoutLogger received location state:', location.state);
+        console.log('📥 Edit session data:', editSession);
+        console.log('📥 Current session state:', currentSession);
+
+        if (editSession && !currentSession) {
+            console.log('🔄 Loading edit session into current session...');
+            continueExistingSession(editSession);
+        }
+    }, [location.state, currentSession]);
+
     // Check for existing session and show modal if found
     useEffect(() => {
-        if (existingSession && !currentSession && !showExistingSessionModal) {
+        if (existingSession && !currentSession && !showExistingSessionModal && !location.state?.editSession) {
             setShowExistingSessionModal(true);
         }
-    }, [existingSession, currentSession, showExistingSessionModal]);
+    }, [existingSession, currentSession, showExistingSessionModal, location.state]);
 
     // Auto-create session if not exists and no existing session
     useEffect(() => {
-        // Only show create session modal if there's no current session AND no existing session AND no modals are currently showing
-        if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal) {
+        // Only show create session modal if there's no current session AND no existing session AND no modals are currently showing AND no edit session
+        if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal && !location.state?.editSession) {
             setShowSessionModal(true);
         } else if (existingSession && showSessionModal) {
             // If there's an existing session but the create session modal is showing, close it
             setShowSessionModal(false);
         }
-    }, [currentSession, existingSession, showSessionModal, showExistingSessionModal]);
+    }, [currentSession, existingSession, showSessionModal, showExistingSessionModal, location.state]);
 
     const handleCreateSession = async () => {
         if (!sessionName.trim()) return;
@@ -191,7 +205,7 @@ export default function WorkoutLogger() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <h1 className="text-3xl font-bold text-white mb-2">
-                                    Log Your Workout
+                                    {location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
                                 </h1>
                                 <p className="text-gray-400">
                                     {currentSession ? `Session: ${currentSession.session_name}` : 'Create a new workout session'}
@@ -209,7 +223,7 @@ export default function WorkoutLogger() {
                                         onClick={handleFinishWorkout}
                                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                                     >
-                                        Finish Workout
+                                        {location.state?.editSession ? 'Save Changes' : 'Finish Workout'}
                                     </button>
                                 )}
                             </div>

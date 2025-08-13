@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,16 +29,18 @@ export function useWorkoutLogging() {
     const [loading, setLoading] = useState(false);
     const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
     const [existingSession, setExistingSession] = useState<WorkoutSession | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const isEditingRef = useRef(false);
 
     // Check for existing session from today when component mounts
     useEffect(() => {
-        if (user) {
+        if (user && !currentSession && !isEditing) {
             checkForExistingSession();
         }
-    }, [user]);
+    }, [user]); // Only depend on user, not currentSession or isEditing
 
     const checkForExistingSession = async () => {
-        if (!user) return;
+        if (!user || isEditingRef.current) return;
 
         try {
             console.log('Checking for existing session...');
@@ -78,9 +80,9 @@ export function useWorkoutLogging() {
                     id: log.id,
                     exercise_id: log.exercise_id,
                     exercise_name: log.exercise_name,
-                    sets: log.sets,
-                    reps: typeof log.reps === 'string' ? JSON.parse(log.reps) : log.reps,
-                    weight: log.weight,
+                    sets: log.sets_completed,
+                    reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
+                    weight: log.weight_per_set && log.weight_per_set.length > 0 ? log.weight_per_set[0] : null,
                     notes: log.notes
                 }));
 
@@ -104,10 +106,16 @@ export function useWorkoutLogging() {
     };
 
     const continueExistingSession = async (session: WorkoutSession) => {
-        console.log('continueExistingSession called with:', session);
+        console.log('🔄 continueExistingSession called with:', session);
+        console.log('🔄 Session exercises:', session.exercises);
+        console.log('🔄 Current session before update:', currentSession);
+
+        isEditingRef.current = true;
+        setIsEditing(true);
         setCurrentSession(session);
         setExistingSession(null);
-        console.log('Session state updated');
+
+        console.log('✅ Session state updated - new current session:', session);
     };
 
     const createFreeformSession = async (sessionName: string): Promise<string> => {
@@ -175,11 +183,10 @@ export function useWorkoutLogging() {
                     session_id: currentSession.id,
                     exercise_id: exerciseId,
                     exercise_name: exerciseName,
-                    sets,
-                    reps: JSON.stringify(reps),
-                    weight,
+                    sets_completed: sets,
+                    reps_per_set: reps,
+                    weight_per_set: weight ? [weight] : [],
                     notes,
-                    set_order: (currentSession.exercises.length + 1),
                     exercise_order: (currentSession.exercises.length + 1)
                 });
 
@@ -208,9 +215,9 @@ export function useWorkoutLogging() {
             const { error } = await supabase
                 .from('workout_logs')
                 .update({
-                    sets: updates.sets,
-                    reps: updates.reps ? JSON.stringify(updates.reps) : undefined,
-                    weight: updates.weight,
+                    sets_completed: updates.sets,
+                    reps_per_set: updates.reps,
+                    weight_per_set: updates.weight ? [updates.weight] : undefined,
                     notes: updates.notes
                 })
                 .eq('session_id', currentSession.id)
@@ -276,6 +283,8 @@ export function useWorkoutLogging() {
     const clearSession = () => {
         setCurrentSession(null);
         setExistingSession(null);
+        setIsEditing(false);
+        isEditingRef.current = false;
     };
 
     return {

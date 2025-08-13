@@ -14,9 +14,9 @@ interface WorkoutLog {
     session_id: string;
     exercise_id: string;
     exercise_name: string;
-    sets: number; // Changed from sets_completed
-    reps: number[]; // Will be parsed from string to array
-    weight?: number; // Changed from weight_per_set array
+    sets_completed: number;
+    reps_per_set: number[];
+    weight_per_set: number[];
     rest_time: number | null;
     notes: string | null;
     exercise_order: number;
@@ -82,25 +82,35 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
             // Parse the JSON arrays
             const parsedLogs = (data || []).map(log => {
                 let parsedReps: number[] = [];
+                let parsedWeights: number[] = [];
 
                 try {
-                    if (typeof log.reps === 'string') {
-                        parsedReps = JSON.parse(log.reps);
-                    } else if (Array.isArray(log.reps)) {
-                        parsedReps = log.reps;
+                    if (typeof log.reps_per_set === 'string') {
+                        parsedReps = JSON.parse(log.reps_per_set);
+                    } else if (Array.isArray(log.reps_per_set)) {
+                        parsedReps = log.reps_per_set;
                     } else {
-                        console.warn('Unexpected reps format:', log.reps);
+                        console.warn('Unexpected reps_per_set format:', log.reps_per_set);
                         parsedReps = [];
                     }
+
+                    if (typeof log.weight_per_set === 'string') {
+                        parsedWeights = JSON.parse(log.weight_per_set);
+                    } else if (Array.isArray(log.weight_per_set)) {
+                        parsedWeights = log.weight_per_set;
+                    } else {
+                        parsedWeights = [];
+                    }
                 } catch (parseError) {
-                    console.error('Error parsing reps:', parseError, 'Raw reps:', log.reps);
+                    console.error('Error parsing data:', parseError);
                     parsedReps = [];
+                    parsedWeights = [];
                 }
 
                 return {
                     ...log,
-                    reps: parsedReps,
-                    weight: log.weight,
+                    reps_per_set: parsedReps,
+                    weight_per_set: parsedWeights,
                     session_date: log.workout_sessions?.session_date,
                     session_name: log.workout_sessions?.session_name
                 };
@@ -133,22 +143,28 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
         let weightCount = 0;
 
         exerciseLogs.forEach(log => {
-            totalSets += log.sets;
-            if (log.sets > mostSets) {
-                mostSets = log.sets;
+            totalSets += log.sets_completed;
+            if (log.sets_completed > mostSets) {
+                mostSets = log.sets_completed;
             }
 
             // Calculate reps and weights
-            if (Array.isArray(log.reps)) {
-                log.reps.forEach((reps) => {
+            if (Array.isArray(log.reps_per_set)) {
+                log.reps_per_set.forEach((reps) => {
                     totalReps += reps;
                     totalRepsCount++;
                     if (reps > highestReps) {
                         highestReps = reps;
                     }
+                });
+            } else {
+                console.warn('reps_per_set is not an array for log:', log.id, 'reps_per_set:', log.reps_per_set);
+            }
 
-                    if (log.weight) {
-                        const weight = log.weight;
+            // Calculate weights
+            if (Array.isArray(log.weight_per_set)) {
+                log.weight_per_set.forEach((weight) => {
+                    if (weight > 0) {
                         totalWeight += weight;
                         weightCount++;
                         if (weight > highestWeight) {
@@ -156,8 +172,6 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                         }
                     }
                 });
-            } else {
-                console.warn('Reps is not an array for log:', log.id, 'reps:', log.reps);
             }
         });
 
@@ -287,17 +301,17 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                                         </div>
 
                                         <div className="text-gray-300 text-sm mb-2">
-                                            {log.sets} sets completed
+                                            {log.sets_completed} sets completed
                                         </div>
 
                                         {/* Sets Details */}
                                         <div className="space-y-2">
-                                            {Array.isArray(log.reps) ? log.reps.map((reps, index) => (
+                                            {Array.isArray(log.reps_per_set) ? log.reps_per_set.map((reps, index) => (
                                                 <div key={index} className="flex items-center text-sm">
                                                     <span className="text-gray-400 w-16">Set {index + 1}:</span>
                                                     <span className="text-white mr-4">{reps} reps</span>
-                                                    {log.weight && (
-                                                        <span className="text-cyan-400">{log.weight} kg</span>
+                                                    {log.weight_per_set && log.weight_per_set[index] && (
+                                                        <span className="text-cyan-400">{log.weight_per_set[index]} kg</span>
                                                     )}
                                                 </div>
                                             )) : (
