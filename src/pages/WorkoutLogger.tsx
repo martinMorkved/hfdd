@@ -47,12 +47,8 @@ export default function WorkoutLogger() {
     // Check for edit session from WorkoutHistory
     useEffect(() => {
         const editSession = location.state?.editSession;
-        console.log('📥 WorkoutLogger received location state:', location.state);
-        console.log('📥 Edit session data:', editSession);
-        console.log('📥 Current session state:', currentSession);
 
         if (editSession && !currentSession) {
-            console.log('🔄 Loading edit session into current session...');
             continueExistingSession(editSession);
         }
     }, [location.state, currentSession]);

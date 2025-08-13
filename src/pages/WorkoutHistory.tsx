@@ -346,13 +346,6 @@ export default function WorkoutHistory() {
             };
 
             // Navigate to WorkoutLogger with session data
-            console.log('🚀 Navigating to edit session:', {
-                sessionId: selectedSession.id,
-                sessionName: selectedSession.session_name,
-                sessionType: selectedSession.session_type,
-                exercisesCount: exercises.length,
-                exercises: exercises
-            });
 
             navigate('/log-workout', {
                 state: {

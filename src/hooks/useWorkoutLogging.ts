@@ -43,10 +43,7 @@ export function useWorkoutLogging() {
         if (!user || isEditingRef.current) return;
 
         try {
-            console.log('Checking for existing session...');
             const today = new Date().toISOString().split('T')[0];
-            console.log('Today:', today);
-            console.log('User ID:', user.id);
 
             const { data, error } = await supabase
                 .from('workout_sessions')
@@ -59,11 +56,8 @@ export function useWorkoutLogging() {
 
             if (error) throw error;
 
-            console.log('Found sessions:', data);
-
             if (data && data.length > 0) {
                 const session = data[0];
-                console.log('Found existing session:', session);
 
                 // Load exercises for this session
                 const { data: logsData, error: logsError } = await supabase
@@ -73,8 +67,6 @@ export function useWorkoutLogging() {
                     .order('exercise_order', { ascending: true });
 
                 if (logsError) throw logsError;
-
-                console.log('Found exercise logs:', logsData);
 
                 const exercises = (logsData || []).map(log => ({
                     id: log.id,
@@ -95,10 +87,7 @@ export function useWorkoutLogging() {
                     exercises
                 };
 
-                console.log('Setting existing session:', existingSessionWithExercises);
                 setExistingSession(existingSessionWithExercises);
-            } else {
-                console.log('No existing sessions found for today');
             }
         } catch (error) {
             console.error('Error checking for existing session:', error);
@@ -106,16 +95,10 @@ export function useWorkoutLogging() {
     };
 
     const continueExistingSession = async (session: WorkoutSession) => {
-        console.log('🔄 continueExistingSession called with:', session);
-        console.log('🔄 Session exercises:', session.exercises);
-        console.log('🔄 Current session before update:', currentSession);
-
         isEditingRef.current = true;
         setIsEditing(true);
         setCurrentSession(session);
         setExistingSession(null);
-
-        console.log('✅ Session state updated - new current session:', session);
     };
 
     const createFreeformSession = async (sessionName: string): Promise<string> => {
