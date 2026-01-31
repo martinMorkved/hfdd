@@ -40,6 +40,9 @@ export default function WorkoutHistory() {
     const [editLoading, setEditLoading] = useState(false);
     const [showSelectiveMergeModal, setShowSelectiveMergeModal] = useState(false);
     const [selectedSessionsForMerge, setSelectedSessionsForMerge] = useState<Set<string>>(new Set());
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<WorkoutSession | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
 
     useEffect(() => {
@@ -357,7 +360,50 @@ export default function WorkoutHistory() {
         }
     };
 
+    const handleDeleteSession = (session: WorkoutSession) => {
+        setSessionToDelete(session);
+        setShowDeleteModal(true);
+    };
 
+    const confirmDeleteSession = async () => {
+        if (!sessionToDelete) return;
+
+        try {
+            setDeleteLoading(true);
+
+            // Delete workout logs first (due to foreign key constraint)
+            const { error: logsError } = await supabase
+                .from('workout_logs')
+                .delete()
+                .eq('session_id', sessionToDelete.id);
+
+            if (logsError) throw logsError;
+
+            // Delete the session
+            const { error: sessionError } = await supabase
+                .from('workout_sessions')
+                .delete()
+                .eq('id', sessionToDelete.id);
+
+            if (sessionError) throw sessionError;
+
+            // Update local state
+            setSessions(prev => prev.filter(s => s.id !== sessionToDelete.id));
+
+            // Clear selected session if it was the deleted one
+            if (selectedSession?.id === sessionToDelete.id) {
+                setSelectedSession(null);
+                setSessionLogs([]);
+            }
+
+            setShowDeleteModal(false);
+            setSessionToDelete(null);
+        } catch (error) {
+            console.error('Error deleting session:', error);
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
 
 
 
@@ -485,6 +531,12 @@ export default function WorkoutHistory() {
                                                 className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700 transition"
                                             >
                                                 Edit Workout
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteSession(selectedSession)}
+                                                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
+                                            >
+                                                Delete
                                             </button>
                                             <div className="text-right">
                                                 <div className="text-sm text-gray-400">Session Type</div>
@@ -749,6 +801,44 @@ export default function WorkoutHistory() {
                 </div>
             </Modal>
 
+            {/* Delete Session Confirmation Modal */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                title="Delete Workout Session"
+                maxWidth="max-w-md"
+            >
+                <div>
+                    <p className="text-gray-300 mb-4">
+                        Are you sure you want to delete this workout session? This action cannot be undone.
+                    </p>
+                    {sessionToDelete && (
+                        <div className="bg-gray-700 rounded-lg p-4 mb-6">
+                            <div className="font-semibold text-white">
+                                {sessionToDelete.session_name}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                                {formatDate(sessionToDelete.session_date)} • {sessionToDelete.session_type === 'freeform' ? 'Free-form' : 'Program'}
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowDeleteModal(false)}
+                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={confirmDeleteSession}
+                            disabled={deleteLoading}
+                            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        >
+                            {deleteLoading ? 'Deleting...' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
         </div>
     );

@@ -36,8 +36,7 @@ export default function Dashboard() {
         setShowLogModal(false);
 
         if (choice === 'program') {
-            console.log("Log workout from active program:", activeProgram?.name);
-            // TODO: Navigate to program-based workout logging
+            navigate('/log-workout', { state: { sessionType: 'program' } });
         } else if (choice === 'freeform') {
             navigate('/log-workout');
         } else if (choice === 'picker') {
