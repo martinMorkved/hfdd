@@ -609,7 +609,7 @@ export default function WorkoutLogger() {
                                                         variant="icon"
                                                     />
                                                     <button
-                                                        onClick={() => handleRemoveExercise(exercise.exercise_id)}
+                                                        onClick={() => handleRemoveExercise(exercise.id)}
                                                         className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
                                                     >
                                                         Remove
@@ -622,7 +622,7 @@ export default function WorkoutLogger() {
                                                     <label className="block text-gray-400 text-sm mb-1">Sets</label>
                                                     <NumberInput
                                                         value={exercise.sets}
-                                                        onChange={(value) => handleUpdateExercise(exercise.exercise_id, { sets: value })}
+                                                        onChange={(value) => handleUpdateExercise(exercise.id, { sets: value })}
                                                         min={1}
                                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
                                                     />
@@ -631,7 +631,7 @@ export default function WorkoutLogger() {
                                                     <label className="block text-gray-400 text-sm mb-1">Weight (kg)</label>
                                                     <NumberInput
                                                         value={exercise.weight || 0}
-                                                        onChange={(value) => handleUpdateExercise(exercise.exercise_id, { weight: value })}
+                                                        onChange={(value) => handleUpdateExercise(exercise.id, { weight: value })}
                                                         min={0}
                                                         step={0.5}
                                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
@@ -642,7 +642,7 @@ export default function WorkoutLogger() {
                                                     <input
                                                         type="text"
                                                         value={exercise.notes || ''}
-                                                        onChange={(e) => handleUpdateExercise(exercise.exercise_id, { notes: e.target.value })}
+                                                        onChange={(e) => handleUpdateExercise(exercise.id, { notes: e.target.value })}
                                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
                                                         placeholder="Optional notes..."
                                                     />
@@ -660,7 +660,7 @@ export default function WorkoutLogger() {
                                                                 onChange={(value) => {
                                                                     const newReps = [...exercise.reps];
                                                                     newReps[repIndex] = value;
-                                                                    handleUpdateExercise(exercise.exercise_id, { reps: newReps });
+                                                                    handleUpdateExercise(exercise.id, { reps: newReps });
                                                                 }}
                                                                 min={1}
                                                                 className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
