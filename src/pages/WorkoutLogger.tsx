@@ -617,16 +617,7 @@ export default function WorkoutLogger() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className="block text-gray-400 text-sm mb-1">Sets</label>
-                                                    <NumberInput
-                                                        value={exercise.sets}
-                                                        onChange={(value) => handleUpdateExercise(exercise.id, { sets: value })}
-                                                        min={1}
-                                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                                    />
-                                                </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="block text-gray-400 text-sm mb-1">Weight (kg)</label>
                                                     <NumberInput
@@ -650,23 +641,47 @@ export default function WorkoutLogger() {
                                             </div>
 
                                             <div className="mt-4">
-                                                <label className="block text-gray-400 text-sm mb-2">Reps per Set</label>
-                                                <div className="flex gap-2 flex-wrap">
+                                                <div className="flex gap-2 flex-wrap items-end">
                                                     {exercise.reps.map((rep, repIndex) => (
                                                         <div key={repIndex} className="flex flex-col">
                                                             <span className="text-gray-400 text-sm mb-1">Set {repIndex + 1}:</span>
-                                                            <NumberInput
-                                                                value={rep}
-                                                                onChange={(value) => {
-                                                                    const newReps = [...exercise.reps];
-                                                                    newReps[repIndex] = value;
-                                                                    handleUpdateExercise(exercise.id, { reps: newReps });
-                                                                }}
-                                                                min={1}
-                                                                className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
-                                                            />
+                                                            <div className="flex items-center gap-1">
+                                                                <NumberInput
+                                                                    value={rep}
+                                                                    onChange={(value) => {
+                                                                        const newReps = [...exercise.reps];
+                                                                        newReps[repIndex] = value;
+                                                                        handleUpdateExercise(exercise.id, { reps: newReps });
+                                                                    }}
+                                                                    min={1}
+                                                                    className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                />
+                                                                {exercise.reps.length > 1 && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newReps = exercise.reps.filter((_, i) => i !== repIndex);
+                                                                            handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length });
+                                                                        }}
+                                                                        className="text-gray-500 hover:text-red-400 transition text-lg leading-none"
+                                                                        title="Remove set"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     ))}
+                                                    <button
+                                                        onClick={() => {
+                                                            const lastRep = exercise.reps[exercise.reps.length - 1] || 10;
+                                                            const newReps = [...exercise.reps, lastRep];
+                                                            handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length });
+                                                        }}
+                                                        className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center"
+                                                        title="Add set"
+                                                    >
+                                                        +
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
