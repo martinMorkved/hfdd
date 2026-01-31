@@ -62,7 +62,6 @@ export function useWorkoutLogging() {
     const [loading, setLoading] = useState(false);
     const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(readStoredSession);
     const [existingSession, setExistingSession] = useState<WorkoutSession | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
     const isEditingRef = useRef(false);
 
     // Persist whenever currentSession changes (backup; we also persist in each setter below)
@@ -143,7 +142,6 @@ export function useWorkoutLogging() {
 
     const continueExistingSession = async (session: WorkoutSession) => {
         isEditingRef.current = true;
-        setIsEditing(true);
         setCurrentSession(session);
         setExistingSession(null);
     };
@@ -341,7 +339,6 @@ export function useWorkoutLogging() {
     const clearSession = () => {
         setCurrentSession(null);
         setExistingSession(null);
-        setIsEditing(false);
         isEditingRef.current = false;
         if (typeof window !== 'undefined') {
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
