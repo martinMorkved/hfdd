@@ -274,7 +274,10 @@ export default function WorkoutLogger() {
                         </div>
                         <div className="flex gap-3 flex-shrink-0">
                                 <button
-                                    onClick={() => navigate('/')}
+                                    onClick={() => {
+                                        clearSession();
+                                        navigate('/');
+                                    }}
                                     className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
                                 >
                                     Cancel
@@ -282,7 +285,9 @@ export default function WorkoutLogger() {
                                 {currentSession && (
                                     <button
                                         onClick={handleFinishWorkout}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                                        disabled={currentSession.exercises.length === 0}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                        title={currentSession.exercises.length === 0 ? 'Add at least one exercise to finish' : ''}
                                     >
                                         {location.state?.editSession ? 'Save Changes' : 'Finish Workout'}
                                     </button>
