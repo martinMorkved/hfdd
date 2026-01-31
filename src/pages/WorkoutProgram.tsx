@@ -335,7 +335,7 @@ export default function WorkoutProgram() {
                                                                 <div className="space-y-4">
                                                                     {day.exercises.map(exercise => (
                                                                         <div
-                                                                            key={exercise.exerciseId}
+                                                                            key={exercise.id}
                                                                             className="bg-gray-700 rounded-lg p-4 cursor-move"
                                                                             draggable
                                                                             onDragStart={() => handleWorkoutExerciseDragStart(week.weekNumber, day.name, exercise.exerciseId)}
