@@ -36,6 +36,11 @@ A modern workout planner app built with React, TypeScript, Vite, and Tailwind CS
 - [Vite](https://vitejs.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
+## Hosting
+
+- **Frontend:** [Vercel](https://vercel.com/)
+- **Database & Auth:** [Supabase](https://supabase.com/) (`bdzwlsrsmzwwkntojadr`)
+
 ---
 
 > Made with 💪 for fun and fitness!
