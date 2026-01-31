@@ -24,20 +24,67 @@ export interface WorkoutSession {
     exercises: WorkoutExercise[];
 }
 
+/** Day exercise shape for pre-filling from a program day */
+export type ProgramDayExercise = {
+    exercise_id: string;
+    exercise_name: string;
+    sets: number;
+    reps: number[];
+};
+
+const SESSION_STORAGE_KEY = 'hfdd_workout_in_progress';
+
+function readStoredSession(): WorkoutSession | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const stored = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (!stored) return null;
+        const parsed = JSON.parse(stored) as WorkoutSession;
+        // Allow temp IDs (unsaved sessions) or real IDs
+        if (!parsed?.user_id || !Array.isArray(parsed.exercises)) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function writeStoredSession(session: WorkoutSession | null, userId: string | undefined): void {
+    if (typeof window === 'undefined') return;
+    if (session && userId && session.user_id === userId) {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    } else {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+}
+
 export function useWorkoutLogging() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
+    const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(readStoredSession);
     const [existingSession, setExistingSession] = useState<WorkoutSession | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const isEditingRef = useRef(false);
 
-    // Check for existing session from today when component mounts
+    // Persist whenever currentSession changes (backup; we also persist in each setter below)
     useEffect(() => {
-        if (user && !currentSession && !isEditing) {
-            checkForExistingSession();
+        writeStoredSession(currentSession, user?.id);
+    }, [currentSession, user?.id]);
+
+    // On mount: validate restored session belongs to current user; else check for existing freeform session today
+    useEffect(() => {
+        if (!user) return;
+        const stored = readStoredSession();
+        if (stored) {
+            if (stored.user_id === user.id) {
+                setCurrentSession(stored);
+                setExistingSession(null);
+                return;
+            }
+            setCurrentSession(null);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
-    }, [user]); // Only depend on user, not currentSession or isEditing
+        checkForExistingSession();
+    }, [user]);
 
     const checkForExistingSession = async () => {
         if (!user || isEditingRef.current) return;
@@ -101,166 +148,194 @@ export function useWorkoutLogging() {
         setExistingSession(null);
     };
 
-    const createFreeformSession = async (sessionName: string): Promise<string> => {
+    const createFreeformSession = (sessionName: string): string => {
         if (!user) throw new Error('User not authenticated');
 
+        // Create session in memory only (saved to DB on "Finish Workout")
+        const tempId = `temp-${Date.now()}`;
+        const newSession: WorkoutSession = {
+            id: tempId,
+            user_id: user.id,
+            session_type: 'freeform',
+            session_name: sessionName,
+            session_date: new Date().toISOString().split('T')[0],
+            exercises: []
+        };
+
+        setCurrentSession(newSession);
+        setExistingSession(null);
+        return tempId;
+    };
+
+    const createProgramSession = (
+        programId: string,
+        programName: string,
+        weekNumber: number,
+        dayName: string,
+        dayExercises: ProgramDayExercise[]
+    ): string => {
+        if (!user) throw new Error('User not authenticated');
+
+        // Create session in memory only (saved to DB on "Finish Workout")
+        const tempId = `temp-${Date.now()}`;
+        const sessionName = `${programName} – Week ${weekNumber} – ${dayName}`;
+        const sessionDate = new Date().toISOString().split('T')[0];
+
+        const exercises: WorkoutExercise[] = dayExercises.map((ex, index) => ({
+            id: `temp-ex-${Date.now()}-${index}`,
+            exercise_id: ex.exercise_id,
+            exercise_name: ex.exercise_name,
+            sets: ex.sets,
+            reps: ex.reps?.length ? ex.reps : [10, 10, 10],
+            weight: undefined,
+            notes: undefined
+        }));
+
+        const newSession: WorkoutSession = {
+            id: tempId,
+            user_id: user.id,
+            session_type: 'program',
+            session_name: sessionName,
+            program_id: programId,
+            week_number: weekNumber,
+            day_name: dayName,
+            session_date: sessionDate,
+            exercises
+        };
+
+        setCurrentSession(newSession);
+        setExistingSession(null);
+        return tempId;
+    };
+
+    const addExerciseToSession = (exerciseId: string, exerciseName: string, sets: number, reps: number[], weight?: number, notes?: string) => {
+        if (!currentSession) throw new Error('No active session');
+
+        const newExercise: WorkoutExercise = {
+            id: `temp-ex-${Date.now()}`,
+            exercise_id: exerciseId,
+            exercise_name: exerciseName,
+            sets,
+            reps,
+            weight,
+            notes
+        };
+
+        // Update local state only (saved to DB on "Finish Workout")
+        setCurrentSession(prev => prev ? {
+            ...prev,
+            exercises: [...prev.exercises, newExercise]
+        } : null);
+    };
+
+    const updateExercise = (exerciseId: string, updates: Partial<WorkoutExercise>) => {
+        if (!currentSession) throw new Error('No active session');
+
+        // Update local state only (saved to DB on "Finish Workout")
+        setCurrentSession(prev => prev ? {
+            ...prev,
+            exercises: prev.exercises.map(ex =>
+                ex.exercise_id === exerciseId
+                    ? { ...ex, ...updates }
+                    : ex
+            )
+        } : null);
+    };
+
+    const removeExerciseFromSession = (exerciseId: string) => {
+        if (!currentSession) throw new Error('No active session');
+
+        // Update local state only (saved to DB on "Finish Workout")
+        setCurrentSession(prev => prev ? {
+            ...prev,
+            exercises: prev.exercises.filter(ex => ex.exercise_id !== exerciseId)
+        } : null);
+    };
+
+    const saveSession = async (): Promise<string> => {
+        if (!currentSession || !user) throw new Error('No active session');
+
+        setLoading(true);
         try {
-            setLoading(true);
+            // Check if this is a new session (temp ID) or existing one being edited
+            const isNewSession = currentSession.id?.startsWith('temp-');
 
-            const { data, error } = await supabase
-                .from('workout_sessions')
-                .insert({
-                    user_id: user.id,
-                    session_type: 'freeform',
-                    session_name: sessionName,
-                    session_date: new Date().toISOString().split('T')[0],
-                    program_id: null,
-                    week_number: null,
-                    day_name: null
-                })
-                .select()
-                .single();
+            if (isNewSession) {
+                // Insert session to database
+                const { data: sessionData, error: sessionError } = await supabase
+                    .from('workout_sessions')
+                    .insert({
+                        user_id: user.id,
+                        session_type: currentSession.session_type,
+                        session_name: currentSession.session_name,
+                        session_date: currentSession.session_date,
+                        program_id: currentSession.program_id || null,
+                        week_number: currentSession.week_number || null,
+                        day_name: currentSession.day_name || null
+                    })
+                    .select()
+                    .single();
 
-            if (error) throw error;
+                if (sessionError) throw sessionError;
 
-            const newSession: WorkoutSession = {
-                id: data.id,
-                user_id: user.id,
-                session_type: 'freeform',
-                session_name: sessionName,
-                session_date: data.session_date,
-                exercises: []
-            };
+                // Insert all exercises
+                if (currentSession.exercises.length > 0) {
+                    const logsToInsert = currentSession.exercises.map((ex, index) => ({
+                        session_id: sessionData.id,
+                        exercise_id: ex.exercise_id,
+                        exercise_name: ex.exercise_name,
+                        sets_completed: ex.sets,
+                        reps_per_set: ex.reps,
+                        weight_per_set: ex.weight ? [ex.weight] : [],
+                        notes: ex.notes || null,
+                        exercise_order: index + 1
+                    }));
 
-            setCurrentSession(newSession);
-            setExistingSession(null);
-            return data.id;
+                    const { error: logsError } = await supabase
+                        .from('workout_logs')
+                        .insert(logsToInsert);
+
+                    if (logsError) throw logsError;
+                }
+
+                return sessionData.id;
+            } else {
+                // Editing existing session - update exercises
+                const sessionId = currentSession.id!;
+
+                // Delete old exercises and insert new ones
+                await supabase
+                    .from('workout_logs')
+                    .delete()
+                    .eq('session_id', sessionId);
+
+                if (currentSession.exercises.length > 0) {
+                    const logsToInsert = currentSession.exercises.map((ex, index) => ({
+                        session_id: sessionId,
+                        exercise_id: ex.exercise_id,
+                        exercise_name: ex.exercise_name,
+                        sets_completed: ex.sets,
+                        reps_per_set: ex.reps,
+                        weight_per_set: ex.weight ? [ex.weight] : [],
+                        notes: ex.notes || null,
+                        exercise_order: index + 1
+                    }));
+
+                    const { error: logsError } = await supabase
+                        .from('workout_logs')
+                        .insert(logsToInsert);
+
+                    if (logsError) throw logsError;
+                }
+
+                return sessionId;
+            }
         } catch (error) {
-            console.error('Error creating session:', error);
+            console.error('Error saving session:', error);
             throw error;
         } finally {
             setLoading(false);
         }
-    };
-
-    const addExerciseToSession = async (exerciseId: string, exerciseName: string, sets: number, reps: number[], weight?: number, notes?: string) => {
-        if (!currentSession?.id) throw new Error('No active session');
-
-        try {
-            setLoading(true);
-
-            const newExercise: WorkoutExercise = {
-                id: Date.now().toString(),
-                exercise_id: exerciseId,
-                exercise_name: exerciseName,
-                sets,
-                reps,
-                weight,
-                notes
-            };
-
-            // Add to database
-            const { error } = await supabase
-                .from('workout_logs')
-                .insert({
-                    session_id: currentSession.id,
-                    exercise_id: exerciseId,
-                    exercise_name: exerciseName,
-                    sets_completed: sets,
-                    reps_per_set: reps,
-                    weight_per_set: weight ? [weight] : [],
-                    notes,
-                    exercise_order: (currentSession.exercises.length + 1)
-                });
-
-            if (error) throw error;
-
-            // Update local state
-            setCurrentSession(prev => prev ? {
-                ...prev,
-                exercises: [...prev.exercises, newExercise]
-            } : null);
-
-        } catch (error) {
-            console.error('Error adding exercise:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const updateExercise = async (exerciseId: string, updates: Partial<WorkoutExercise>) => {
-        if (!currentSession?.id) throw new Error('No active session');
-
-        try {
-            setLoading(true);
-
-            const { error } = await supabase
-                .from('workout_logs')
-                .update({
-                    sets_completed: updates.sets,
-                    reps_per_set: updates.reps,
-                    weight_per_set: updates.weight ? [updates.weight] : undefined,
-                    notes: updates.notes
-                })
-                .eq('session_id', currentSession.id)
-                .eq('exercise_id', exerciseId);
-
-            if (error) throw error;
-
-            // Update local state
-            setCurrentSession(prev => prev ? {
-                ...prev,
-                exercises: prev.exercises.map(ex =>
-                    ex.exercise_id === exerciseId
-                        ? { ...ex, ...updates }
-                        : ex
-                )
-            } : null);
-
-        } catch (error) {
-            console.error('Error updating exercise:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const removeExerciseFromSession = async (exerciseId: string) => {
-        if (!currentSession?.id) throw new Error('No active session');
-
-        try {
-            setLoading(true);
-
-            const { error } = await supabase
-                .from('workout_logs')
-                .delete()
-                .eq('session_id', currentSession.id)
-                .eq('exercise_id', exerciseId);
-
-            if (error) throw error;
-
-            // Update local state
-            setCurrentSession(prev => prev ? {
-                ...prev,
-                exercises: prev.exercises.filter(ex => ex.exercise_id !== exerciseId)
-            } : null);
-
-        } catch (error) {
-            console.error('Error removing exercise:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const saveSession = async () => {
-        if (!currentSession?.id) throw new Error('No active session');
-
-        // Session is already saved as we add exercises
-        // This could be used for final validation or additional processing
-        console.log('Session saved successfully:', currentSession);
-        return currentSession.id;
     };
 
     const clearSession = () => {
@@ -268,6 +343,9 @@ export function useWorkoutLogging() {
         setExistingSession(null);
         setIsEditing(false);
         isEditingRef.current = false;
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
     };
 
     return {
@@ -275,6 +353,7 @@ export function useWorkoutLogging() {
         currentSession,
         existingSession,
         createFreeformSession,
+        createProgramSession,
         continueExistingSession,
         addExerciseToSession,
         updateExercise,

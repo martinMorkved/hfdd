@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useWorkoutLogging, type WorkoutExercise } from '../hooks/useWorkoutLogging';
+import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../hooks/useWorkoutLogging';
+import { useWorkoutProgram } from '../hooks/useWorkoutProgram';
 import { Modal } from '../components/Modal';
 import { NumberInput } from '../components/NumberInput';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,11 +12,13 @@ export default function WorkoutLogger() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const { activeProgram } = useWorkoutProgram();
     const {
         loading,
         currentSession,
         existingSession,
         createFreeformSession,
+        createProgramSession,
         continueExistingSession,
         addExerciseToSession,
         updateExercise,
@@ -23,6 +26,8 @@ export default function WorkoutLogger() {
         saveSession,
         clearSession
     } = useWorkoutLogging();
+
+    const isProgramFlow = location.state?.sessionType === 'program';
 
     const [showExercisePicker, setShowExercisePicker] = useState(false);
     const [sessionName, setSessionName] = useState(() => {
@@ -53,29 +58,29 @@ export default function WorkoutLogger() {
         }
     }, [location.state, currentSession]);
 
-    // Check for existing session and show modal if found
+    // Check for existing session and show modal if found (freeform flow only)
     useEffect(() => {
+        if (isProgramFlow) return;
         if (existingSession && !currentSession && !showExistingSessionModal && !location.state?.editSession) {
             setShowExistingSessionModal(true);
         }
-    }, [existingSession, currentSession, showExistingSessionModal, location.state]);
+    }, [isProgramFlow, existingSession, currentSession, showExistingSessionModal, location.state]);
 
-    // Auto-create session if not exists and no existing session
+    // Auto-create session modal for freeform only; program flow uses program day picker
     useEffect(() => {
-        // Only show create session modal if there's no current session AND no existing session AND no modals are currently showing AND no edit session
+        if (isProgramFlow) return;
         if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal && !location.state?.editSession) {
             setShowSessionModal(true);
         } else if (existingSession && showSessionModal) {
-            // If there's an existing session but the create session modal is showing, close it
             setShowSessionModal(false);
         }
-    }, [currentSession, existingSession, showSessionModal, showExistingSessionModal, location.state]);
+    }, [isProgramFlow, currentSession, existingSession, showSessionModal, showExistingSessionModal, location.state]);
 
-    const handleCreateSession = async () => {
+    const handleCreateSession = () => {
         if (!sessionName.trim()) return;
 
         try {
-            await createFreeformSession(sessionName);
+            createFreeformSession(sessionName);
             setShowSessionModal(false);
         } catch (error) {
             console.error('Error creating session:', error);
@@ -100,6 +105,21 @@ export default function WorkoutLogger() {
         setShowSessionModal(true);
     };
 
+    const handleSelectProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[] }[]) => {
+        if (!activeProgram) return;
+        const mapped: ProgramDayExercise[] = dayExercises.map((ex) => ({
+            exercise_id: ex.exerciseId,
+            exercise_name: ex.exerciseName,
+            sets: ex.sets,
+            reps: ex.reps?.length ? ex.reps : [10, 10, 10]
+        }));
+        try {
+            createProgramSession(activeProgram.id, activeProgram.name, weekNumber, dayName, mapped);
+        } catch (error) {
+            console.error('Error creating program session:', error);
+        }
+    };
+
     const handleAddExercise = () => {
         setShowExercisePicker(true);
     };
@@ -114,11 +134,11 @@ export default function WorkoutLogger() {
         });
     };
 
-    const handleSaveExercise = async () => {
+    const handleSaveExercise = () => {
         if (!selectedExercise) return;
 
         try {
-            await addExerciseToSession(
+            addExerciseToSession(
                 selectedExercise.id,
                 selectedExercise.name,
                 exerciseForm.reps.length,
@@ -137,17 +157,17 @@ export default function WorkoutLogger() {
         }
     };
 
-    const handleUpdateExercise = async (exerciseId: string, updates: Partial<WorkoutExercise>) => {
+    const handleUpdateExercise = (exerciseId: string, updates: Partial<WorkoutExercise>) => {
         try {
-            await updateExercise(exerciseId, updates);
+            updateExercise(exerciseId, updates);
         } catch (error) {
             console.error('Error updating exercise:', error);
         }
     };
 
-    const handleRemoveExercise = async (exerciseId: string) => {
+    const handleRemoveExercise = (exerciseId: string) => {
         try {
-            await removeExerciseFromSession(exerciseId);
+            removeExerciseFromSession(exerciseId);
         } catch (error) {
             console.error('Error removing exercise:', error);
         }
@@ -188,6 +208,24 @@ export default function WorkoutLogger() {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
                 <div className="text-white text-xl">Loading workout logger...</div>
+            </div>
+        );
+    }
+
+    if (isProgramFlow && !activeProgram && !currentSession) {
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="text-center max-w-md">
+                    <p className="text-gray-300 mb-4">You don&apos;t have an active program. Activate one from Programs to log from a program.</p>
+                    <div className="flex gap-3 justify-center">
+                        <button onClick={() => navigate('/programs')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition">
+                            Programs
+                        </button>
+                        <button onClick={() => navigate('/')} className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition">
+                            Home
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -309,6 +347,49 @@ export default function WorkoutLogger() {
                         </div>
                     </Modal>
 
+                    {/* Program Day Picker Modal */}
+                    <Modal
+                        isOpen={isProgramFlow && !!activeProgram && !currentSession && !loading}
+                        onClose={() => navigate('/')}
+                        title={`Log workout: ${activeProgram?.name ?? 'Program'}`}
+                        maxWidth="max-w-lg"
+                    >
+                        <div>
+                            <p className="text-gray-300 mb-4">
+                                Choose the week and day you're doing today.
+                            </p>
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                                {activeProgram?.weeks.map((week) => (
+                                    <div key={week.id} className="bg-gray-800 rounded-lg p-3">
+                                        <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {week.days.map((day) => (
+                                                <button
+                                                    key={day.id}
+                                                    onClick={() => handleSelectProgramDay(week.weekNumber, day.name, day.exercises)}
+                                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm"
+                                                >
+                                                    {day.name}
+                                                    {day.exercises.length > 0 && (
+                                                        <span className="ml-1 text-cyan-200">({day.exercises.length})</span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-3 mt-4">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+
                     {/* Exercise Selector Modal */}
                     <Modal
                         isOpen={showExercisePicker}
@@ -341,22 +422,24 @@ export default function WorkoutLogger() {
                                 </div>
                                 <div className="space-y-2">
                                     {exerciseForm.reps.map((rep, index) => (
-                                        <div key={index} className="flex gap-2">
-                                            <span className="text-gray-400 text-sm mt-2">Set {index + 1}:</span>
-                                            <NumberInput
-                                                value={rep}
-                                                onChange={(value) => updateRep(index, value)}
-                                                min={1}
-                                                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                            />
-                                            {exerciseForm.reps.length > 1 && (
-                                                <button
-                                                    onClick={() => removeRepSet(index)}
-                                                    className="px-2 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                                >
-                                                    ×
-                                                </button>
-                                            )}
+                                        <div key={index} className="flex flex-col">
+                                            <span className="text-gray-400 text-sm mb-1">Set {index + 1}:</span>
+                                            <div className="flex gap-2 items-center">
+                                                <NumberInput
+                                                    value={rep}
+                                                    onChange={(value) => updateRep(index, value)}
+                                                    min={1}
+                                                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                />
+                                                {exerciseForm.reps.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeRepSet(index)}
+                                                        className="px-2 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                     <button
@@ -492,8 +575,8 @@ export default function WorkoutLogger() {
                                                 <label className="block text-gray-400 text-sm mb-2">Reps per Set</label>
                                                 <div className="flex gap-2 flex-wrap">
                                                     {exercise.reps.map((rep, repIndex) => (
-                                                        <div key={repIndex} className="flex items-center gap-1">
-                                                            <span className="text-gray-400 text-sm">Set {repIndex + 1}:</span>
+                                                        <div key={repIndex} className="flex flex-col">
+                                                            <span className="text-gray-400 text-sm mb-1">Set {repIndex + 1}:</span>
                                                             <NumberInput
                                                                 value={rep}
                                                                 onChange={(value) => {
