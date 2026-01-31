@@ -30,6 +30,7 @@ export default function WorkoutLogger() {
     const isProgramFlow = location.state?.sessionType === 'program';
 
     const [showExercisePicker, setShowExercisePicker] = useState(false);
+    const [showChangeDayModal, setShowChangeDayModal] = useState(false);
     const [sessionName, setSessionName] = useState(() => {
         const today = new Date();
         const dateStr = today.toLocaleDateString('en-GB', {
@@ -118,6 +119,21 @@ export default function WorkoutLogger() {
         } catch (error) {
             console.error('Error creating program session:', error);
         }
+    };
+
+    const handleChangeProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[] }[]) => {
+        if (!activeProgram || !currentSession) return;
+        
+        // Clear current session and create new one with the new day
+        clearSession();
+        createProgramSession(activeProgram.id, activeProgram.name, weekNumber, dayName, dayExercises.map((ex) => ({
+            exercise_id: ex.exerciseId,
+            exercise_name: ex.exerciseName,
+            sets: ex.sets,
+            reps: ex.reps?.length ? ex.reps : [10, 10, 10]
+        })));
+        
+        setShowChangeDayModal(false);
     };
 
     const handleAddExercise = () => {
@@ -235,17 +251,28 @@ export default function WorkoutLogger() {
             <div className="p-8">
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
-                    <div className="mb-8">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-white mb-2">
-                                    {location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
-                                </h1>
-                                <p className="text-gray-400">
-                                    {currentSession ? `Session: ${currentSession.session_name}` : 'Create a new workout session'}
-                                </p>
-                            </div>
-                            <div className="flex gap-3">
+                    <div className="mb-8 flex items-start justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold text-white mb-2">
+                                {location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
+                            </h1>
+                            <p className="text-gray-400">
+                                {currentSession ? (
+                                    <>
+                                        Session: {currentSession.session_name}
+                                        {currentSession.session_type === 'program' && activeProgram && (
+                                            <button
+                                                onClick={() => setShowChangeDayModal(true)}
+                                                className="ml-2 text-cyan-400 hover:text-cyan-300 transition text-sm underline"
+                                            >
+                                                Change
+                                            </button>
+                                        )}
+                                    </>
+                                ) : 'Create a new workout session'}
+                            </p>
+                        </div>
+                        <div className="flex gap-3 flex-shrink-0">
                                 <button
                                     onClick={() => navigate('/')}
                                     className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
@@ -260,7 +287,6 @@ export default function WorkoutLogger() {
                                         {location.state?.editSession ? 'Save Changes' : 'Finish Workout'}
                                     </button>
                                 )}
-                            </div>
                         </div>
                     </div>
 
@@ -489,6 +515,53 @@ export default function WorkoutLogger() {
                                     className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
                                 >
                                     Add Exercise
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* Change Day Modal (for program sessions) */}
+                    <Modal
+                        isOpen={showChangeDayModal}
+                        onClose={() => setShowChangeDayModal(false)}
+                        title="Change Workout Day"
+                        maxWidth="max-w-lg"
+                    >
+                        <div>
+                            <p className="text-gray-300 mb-4">
+                                Select a different day. This will replace your current exercises.
+                            </p>
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                                {activeProgram?.weeks.map((week) => (
+                                    <div key={week.id} className="bg-gray-800 rounded-lg p-3">
+                                        <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {week.days.map((day) => (
+                                                <button
+                                                    key={day.id}
+                                                    onClick={() => handleChangeProgramDay(week.weekNumber, day.name, day.exercises)}
+                                                    className={`px-4 py-2 rounded-lg transition text-sm ${
+                                                        currentSession?.week_number === week.weekNumber && currentSession?.day_name === day.name
+                                                            ? 'bg-cyan-700 text-white ring-2 ring-cyan-400'
+                                                            : 'bg-cyan-600 text-white hover:bg-cyan-700'
+                                                    }`}
+                                                >
+                                                    {day.name}
+                                                    {day.exercises.length > 0 && (
+                                                        <span className="ml-1 text-cyan-200">({day.exercises.length})</span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-3 mt-4">
+                                <button
+                                    onClick={() => setShowChangeDayModal(false)}
+                                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Cancel
                                 </button>
                             </div>
                         </div>
