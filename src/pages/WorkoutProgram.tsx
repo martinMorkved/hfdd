@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
 import { supabase } from "../lib/supabase";
+import { TrashIcon } from "../components/icons";
 
 // Exercise type from Supabase
 type Exercise = {
@@ -567,7 +568,7 @@ export default function WorkoutProgram() {
                             onDrop={handleRemoveZoneDrop}
                         >
                             <div className="text-center">
-                                <div className="text-2xl mb-2">🗑️</div>
+                                <TrashIcon size={32} className="mx-auto mb-2" />
                                 <div className="font-semibold">Drop to Remove</div>
                                 <div className="text-sm opacity-80">Drag exercise here to delete</div>
                             </div>

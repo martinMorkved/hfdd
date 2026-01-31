@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
+import { EditIcon } from '../components/icons';
 
 interface WorkoutSession {
     id: string;
@@ -494,7 +495,7 @@ export default function WorkoutHistory() {
                                                                 onClick={() => handleEditSession(session)}
                                                                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white text-sm"
                                                             >
-                                                                ✏️
+                                                                <EditIcon size={16} />
                                                             </button>
                                                         </div>
                                                     ))}

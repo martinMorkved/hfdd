@@ -3,6 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
 import { Modal } from "../components/Modal";
+import { 
+    DumbbellIcon, 
+    CalendarIcon, 
+    ChartIcon, 
+    ClipboardIcon, 
+    EditIcon 
+} from "../components/icons";
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -50,8 +57,9 @@ export default function Dashboard() {
                 <div className="max-w-6xl mx-auto">
                     {/* Welcome Header */}
                     <div className="mb-8">
-                        <h1 className="text-4xl font-bold text-white mb-2">
-                            Welcome back, {user?.email?.split('@')[0]}! 💪
+                        <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                            Welcome back, {user?.email?.split('@')[0]}!
+                            <DumbbellIcon size={36} className="text-cyan-400" />
                         </h1>
                         <p className="text-gray-400 text-lg">
                             Ready to crush your workout today?
@@ -79,7 +87,7 @@ export default function Dashboard() {
                                     onClick={handleLogWorkout}
                                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
                                 >
-                                    <span>📋</span>
+                                    <ClipboardIcon size={20} />
                                     Log Workout
                                 </button>
                             </div>
@@ -125,14 +133,14 @@ export default function Dashboard() {
                                         state={{ selectedProgramId: activeProgram.id }}
                                         className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
                                     >
-                                        <span>✏️</span>
+                                        <EditIcon size={20} />
                                         Edit Program
                                     </Link>
                                     <Link
                                         to="/programs"
                                         className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-2"
                                     >
-                                        <span>📋</span>
+                                        <ClipboardIcon size={20} />
                                         View All Programs
                                     </Link>
                                 </div>
@@ -170,7 +178,7 @@ export default function Dashboard() {
                         {/* Exercise Library */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="text-2xl">🏋️</span>
+                                <DumbbellIcon size={28} className="text-cyan-400" />
                                 <h3 className="text-xl font-bold text-white">Exercise Library</h3>
                             </div>
                             <p className="text-gray-400 text-sm mb-4">
@@ -187,7 +195,7 @@ export default function Dashboard() {
                         {/* Programs */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="text-2xl">📅</span>
+                                <CalendarIcon size={28} className="text-cyan-400" />
                                 <h3 className="text-xl font-bold text-white">Programs</h3>
                             </div>
                             <p className="text-gray-400 text-sm mb-4">
@@ -204,7 +212,7 @@ export default function Dashboard() {
                         {/* Workout History */}
                         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="text-2xl">📊</span>
+                                <ChartIcon size={28} className="text-cyan-400" />
                                 <h3 className="text-xl font-bold text-white">Workout History</h3>
                             </div>
                             <p className="text-gray-400 text-sm mb-4">
@@ -268,14 +276,14 @@ export default function Dashboard() {
                                 onClick={() => handleLogChoice('program')}
                                 className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
                             >
-                                <span>📋</span>
+                                <ClipboardIcon size={20} />
                                 Log from Program
                             </button>
                             <button
                                 onClick={() => handleLogChoice('freeform')}
                                 className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-3"
                             >
-                                <span>✏️</span>
+                                <EditIcon size={20} />
                                 Free-form Workout
                             </button>
                         </div>
@@ -293,14 +301,14 @@ export default function Dashboard() {
                                 onClick={() => handleLogChoice('freeform')}
                                 className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-3"
                             >
-                                <span>✏️</span>
+                                <EditIcon size={20} />
                                 Log Free-form Workout
                             </button>
                             <button
                                 onClick={() => handleLogChoice('picker')}
                                 className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
                             >
-                                <span>📅</span>
+                                <CalendarIcon size={20} />
                                 Choose a Program
                             </button>
                         </div>

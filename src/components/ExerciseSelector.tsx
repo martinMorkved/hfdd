@@ -55,14 +55,23 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
     // Compute unique muscle groups
     const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
 
-    // Filter exercises by selected groups and search term
-    const filteredExercises = exercises.filter(ex => {
-        const matchesGroup = selectedGroups.length === 0 ||
-            (ex.muscle_group && selectedGroups.includes(ex.muscle_group));
-        const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
-        return matchesGroup && matchesSearch;
-    });
+    // Filter exercises by selected groups and search term, then dedupe
+    const filteredExercises = (() => {
+        const filtered = exercises.filter(ex => {
+            const matchesGroup = selectedGroups.length === 0 ||
+                (ex.muscle_group && selectedGroups.includes(ex.muscle_group));
+            const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
+            return matchesGroup && matchesSearch;
+        });
+        // Deduplicate by ID to prevent React key warnings
+        const seen = new Set<string>();
+        return filtered.filter(ex => {
+            if (seen.has(ex.id)) return false;
+            seen.add(ex.id);
+            return true;
+        });
+    })();
 
     const handleExerciseClick = (exercise: Exercise) => {
         onExerciseSelect(exercise);

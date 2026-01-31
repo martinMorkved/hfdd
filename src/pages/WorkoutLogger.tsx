@@ -7,6 +7,7 @@ import { NumberInput } from '../components/NumberInput';
 import { useAuth } from '../contexts/AuthContext';
 import { ExerciseSelector } from '../components/ExerciseSelector';
 import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
+import { PlusIcon } from '../components/icons';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
@@ -581,7 +582,7 @@ export default function WorkoutLogger() {
                                     onClick={handleAddExercise}
                                     className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
                                 >
-                                    <span>➕</span>
+                                    <PlusIcon size={18} />
                                     Add Exercise
                                 </button>
                             </div>
