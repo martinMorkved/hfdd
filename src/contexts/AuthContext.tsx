@@ -65,7 +65,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            // If signOut fails (e.g., during recovery session), clear local state anyway
+            console.warn('SignOut request failed, clearing local session:', error);
+        }
+        // Ensure user state is cleared regardless
+        setUser(null);
     };
 
     const resetPassword = async (email: string) => {

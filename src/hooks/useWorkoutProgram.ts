@@ -99,14 +99,14 @@ export const useWorkoutProgram = () => {
         try {
             if (!user) return;
 
-            // Get the user's active program
+            // Get the user's active program (maybeSingle returns null if no rows, no error)
             const { data: activeProgramData, error } = await supabase
                 .from('user_active_program')
                 .select('program_id')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
 
-            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+            if (error) {
                 console.error('Error loading active program:', error);
                 return;
             }
