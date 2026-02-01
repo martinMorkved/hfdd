@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { DumbbellIcon, ClipboardIcon, PlusIcon, ClockIcon, LogoutIcon, UserIcon } from "./icons";
-import hfddLogo from "./icons/hfdd-logo.svg";
+import hfddLogo from "./icons/hf-dd-logo.png";
 
 export const Navigation = () => {
     const location = useLocation();
