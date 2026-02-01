@@ -1,13 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { DumbbellIcon, ClipboardIcon, PlusIcon, ClockIcon, LogoutIcon, UserIcon } from "./icons";
 
 export const Navigation = () => {
     const location = useLocation();
     const { user, signOut } = useAuth();
-    const { activeProgram } = useWorkoutProgram();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -76,16 +74,6 @@ export const Navigation = () => {
                         </div>
                     </div>
 
-                    {/* Active Program Badge (desktop) */}
-                    {activeProgram && (
-                        <div className="hidden nav:flex items-center space-x-3">
-                            <div className="flex items-center space-x-2 px-3 py-1 bg-green-600 text-white rounded-lg text-sm">
-                                <span className="w-2 h-2 bg-white rounded-full"></span>
-                                <span className="font-medium">Active:</span>
-                                <span>{activeProgram.name}</span>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Desktop User Menu */}
                     <div className="hidden nav:block relative" ref={menuRef}>
@@ -124,14 +112,6 @@ export const Navigation = () => {
 
                     {/* Mobile Menu Button */}
                     <div className="nav:hidden flex items-center gap-3" ref={mobileMenuRef}>
-                        {/* Active Program Badge (mobile - compact) */}
-                        {activeProgram && (
-                            <div className="flex items-center space-x-1 px-2 py-1 bg-green-600 text-white rounded-lg text-xs">
-                                <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
-                                <span className="font-medium max-w-[80px] truncate">{activeProgram.name}</span>
-                            </div>
-                        )}
-
                         <button
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                             className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition"
