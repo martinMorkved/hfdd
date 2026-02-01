@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { DumbbellIcon, ClipboardIcon, PlusIcon, ClockIcon, LogoutIcon, UserIcon } from "./icons";
-import hfddLogo from "./icons/hf-dd-logo.png";
 
 export const Navigation = () => {
     const location = useLocation();
@@ -34,7 +33,10 @@ export const Navigation = () => {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-8">
                         <Link to="/" className="hover:opacity-80 transition">
-                            <img src={hfddLogo} alt="HFDD" className="h-9" />
+                            <div className="flex flex-col items-center font-bold text-cyan-400">
+                                <span className="text-lg leading-tight">HF</span>
+                                <span className="text-lg leading-tight -mt-1">DD</span>
+                            </div>
                         </Link>
                         <div className="flex space-x-4">
                             <Link
