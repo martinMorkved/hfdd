@@ -56,10 +56,19 @@ export const ExerciseLibrary: React.FC = () => {
     // Compute unique muscle groups
     const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
 
-    // Filter exercises by selected groups
-    const filteredExercises = selectedGroups.length > 0
-        ? exercises.filter(ex => ex.muscle_group && selectedGroups.includes(ex.muscle_group))
-        : exercises;
+    // Filter exercises by selected groups and dedupe by ID
+    const filteredExercises = (() => {
+        const filtered = selectedGroups.length > 0
+            ? exercises.filter(ex => ex.muscle_group && selectedGroups.includes(ex.muscle_group))
+            : exercises;
+        // Deduplicate by ID to prevent React key warnings
+        const seen = new Set<string>();
+        return filtered.filter(ex => {
+            if (seen.has(ex.id)) return false;
+            seen.add(ex.id);
+            return true;
+        });
+    })();
 
     const handleAddExercise = async (e: React.FormEvent) => {
         e.preventDefault();

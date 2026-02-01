@@ -226,27 +226,29 @@ export function useWorkoutLogging() {
         } : null);
     };
 
-    const updateExercise = (exerciseId: string, updates: Partial<WorkoutExercise>) => {
+    const updateExercise = (entryId: string, updates: Partial<WorkoutExercise>) => {
         if (!currentSession) throw new Error('No active session');
 
         // Update local state only (saved to DB on "Finish Workout")
+        // Match by the unique entry ID, not exercise_id (allows multiple of same exercise)
         setCurrentSession(prev => prev ? {
             ...prev,
             exercises: prev.exercises.map(ex =>
-                ex.exercise_id === exerciseId
+                ex.id === entryId
                     ? { ...ex, ...updates }
                     : ex
             )
         } : null);
     };
 
-    const removeExerciseFromSession = (exerciseId: string) => {
+    const removeExerciseFromSession = (entryId: string) => {
         if (!currentSession) throw new Error('No active session');
 
         // Update local state only (saved to DB on "Finish Workout")
+        // Match by the unique entry ID, not exercise_id (allows multiple of same exercise)
         setCurrentSession(prev => prev ? {
             ...prev,
-            exercises: prev.exercises.filter(ex => ex.exercise_id !== exerciseId)
+            exercises: prev.exercises.filter(ex => ex.id !== entryId)
         } : null);
     };
 
