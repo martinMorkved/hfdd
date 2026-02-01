@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ExerciseLibrary } from "./components/ExerciseLibrary";
 import { Navigation } from "./components/Navigation";
 import { Login } from "./components/Auth/Login";
+import { ResetPassword } from "./components/Auth/ResetPassword";
 import WorkoutProgram from "./pages/WorkoutProgram";
 import Programs from "./pages/Programs";
 import Dashboard from "./pages/Dashboard";
@@ -12,6 +14,15 @@ import "./styles/App.css";
 
 function App() {
   const { user, loading } = useAuth();
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
+  // Check for recovery token in URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      setIsRecoveryMode(true);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -19,6 +30,14 @@ function App() {
         <div className="text-cyan-400 text-xl">Loading...</div>
       </div>
     );
+  }
+
+  // Show password reset form if in recovery mode (even if logged in)
+  if (isRecoveryMode && user) {
+    return <ResetPassword onComplete={() => {
+      setIsRecoveryMode(false);
+      window.history.replaceState(null, '', window.location.pathname);
+    }} />;
   }
 
   if (!user) {
