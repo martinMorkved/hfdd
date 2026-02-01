@@ -34,10 +34,7 @@ function App() {
 
   // Show password reset form if in recovery mode (even if logged in)
   if (isRecoveryMode && user) {
-    return <ResetPassword onComplete={() => {
-      setIsRecoveryMode(false);
-      window.history.replaceState(null, '', window.location.pathname);
-    }} />;
+    return <ResetPassword />;
   }
 
   if (!user) {

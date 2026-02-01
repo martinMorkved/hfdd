@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
-interface ResetPasswordProps {
-    onComplete: () => void;
-}
-
-export const ResetPassword: React.FC<ResetPasswordProps> = ({ onComplete }) => {
+export const ResetPassword: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
