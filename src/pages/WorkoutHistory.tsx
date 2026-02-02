@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Modal } from '../components/Modal';
-import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
+import { Modal } from '../components/ui/Modal';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageLayout } from '../components/ui/PageLayout';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ExerciseHistoryButton } from '../features/exercises';
 import { EditIcon } from '../components/icons';
 
 interface WorkoutSession {
@@ -409,218 +413,197 @@ export default function WorkoutHistory() {
 
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-white text-xl">Loading workout history...</div>
-            </div>
-        );
+        return <LoadingScreen message="Loading workout history..." />;
     }
 
     const sessionsByDate = getSessionsByDate();
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="p-8">
-                <div className="max-w-6xl mx-auto">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-white mb-2">
-                            Workout History
-                        </h1>
-                        <p className="text-gray-400">
-                            View your past workout sessions and exercises
-                        </p>
-                    </div>
+        <PageLayout>
+            <PageHeader
+                title="Workout History"
+                subtitle="View your past workout sessions and exercises"
+            />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Sessions List */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <h2 className="text-xl font-bold text-white mb-4">
-                                    Workout Sessions
-                                </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Sessions List */}
+                <div className="lg:col-span-1">
+                    <div className="bg-gray-800 rounded-lg p-6">
+                        <h2 className="text-xl font-bold text-white mb-4">
+                            Workout Sessions
+                        </h2>
 
-                                {sessions.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <div className="text-gray-400 text-lg mb-2">
-                                            No workout sessions yet
-                                        </div>
-                                        <p className="text-gray-500 text-sm">
-                                            Start logging workouts to see them here
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-                                        {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
-                                            <div key={date}>
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <h3 className="text-lg font-semibold text-white">
-                                                        {formatDate(date)}
-                                                    </h3>
-                                                    {dateSessions.length > 1 && (
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => handleMergeSessions(dateSessions)}
-                                                                className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition"
-                                                            >
-                                                                Merge All ({dateSessions.length})
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleSelectiveMerge(dateSessions)}
-                                                                className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition"
-                                                            >
-                                                                Select Merge
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {dateSessions.map((session) => (
-                                                        <div key={session.id} className="relative group">
-                                                            <button
-                                                                onClick={() => handleSessionClick(session)}
-                                                                className={`w-full text-left p-3 rounded-lg transition ${selectedSession?.id === session.id
-                                                                    ? 'bg-cyan-600 text-white'
-                                                                    : 'bg-gray-700 hover:bg-gray-600 text-white'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-semibold mb-1">
-                                                                    {session.session_name}
-                                                                </div>
-                                                                <div className="text-xs opacity-80">
-                                                                    {session.session_type === 'freeform' ? 'Free-form' : 'Program'}
-                                                                </div>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleEditSession(session)}
-                                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white text-sm"
-                                                            >
-                                                                <EditIcon size={16} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Session Details */}
-                        <div className="lg:col-span-2">
-                            {selectedSession ? (
-                                <div className="bg-gray-800 rounded-lg p-6">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-white">
-                                                {selectedSession.session_name}
-                                            </h2>
-                                            <p className="text-gray-400">
-                                                {formatDate(selectedSession.session_date)}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => handleEditSession(selectedSession)}
-                                                className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-500 transition"
-                                            >
-                                                Edit Name
-                                            </button>
-                                            <button
-                                                onClick={startEditingSession}
-                                                className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700 transition"
-                                            >
-                                                Edit Workout
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteSession(selectedSession)}
-                                                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
-                                            >
-                                                Delete
-                                            </button>
-                                            <div className="text-right">
-                                                <div className="text-sm text-gray-400">Session Type</div>
-                                                <div className="text-white font-semibold">
-                                                    {selectedSession.session_type === 'freeform' ? 'Free-form' : 'Program'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {loadingLogs ? (
-                                        <div className="text-center py-8">
-                                            <div className="text-cyan-400 text-lg">Loading exercises...</div>
-                                        </div>
-                                    ) : sessionLogs.length === 0 ? (
-                                        <div className="text-center py-8">
-                                            <div className="text-gray-400 text-lg">
-                                                No exercises logged for this session
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <h3 className="text-lg font-semibold text-white mb-4">
-                                                Exercises ({sessionLogs.length})
+                        {sessions.length === 0 ? (
+                            <EmptyState
+                                title="No workout sessions yet"
+                                description="Start logging workouts to see them here"
+                            />
+                        ) : (
+                            <div className="space-y-6">
+                                {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
+                                    <div key={date}>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-lg font-semibold text-white">
+                                                {formatDate(date)}
                                             </h3>
-
-                                            {sessionLogs.map((log) => (
-                                                <div key={log.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h3 className="text-xl font-bold text-white">{log.exercise_name}</h3>
-                                                        <div className="flex gap-2">
-                                                            <ExerciseHistoryButton
-                                                                exerciseId={log.exercise_id}
-                                                                exerciseName={log.exercise_name}
-                                                                variant="icon"
-                                                            />
+                                            {dateSessions.length > 1 && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleMergeSessions(dateSessions)}
+                                                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition"
+                                                    >
+                                                        Merge All ({dateSessions.length})
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSelectiveMerge(dateSessions)}
+                                                        className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition"
+                                                    >
+                                                        Select Merge
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            {dateSessions.map((session) => (
+                                                <div key={session.id} className="relative group">
+                                                    <button
+                                                        onClick={() => handleSessionClick(session)}
+                                                        className={`w-full text-left p-3 rounded-lg transition ${selectedSession?.id === session.id
+                                                            ? 'bg-cyan-600 text-white'
+                                                            : 'bg-gray-700 hover:bg-gray-600 text-white'
+                                                            }`}
+                                                    >
+                                                        <div className="font-semibold mb-1">
+                                                            {session.session_name}
                                                         </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                                        <div>
-                                                            <span className="text-gray-400">Sets:</span>
-                                                            <span className="text-white ml-2">{log.sets_completed}</span>
+                                                        <div className="text-xs opacity-80">
+                                                            {session.session_type === 'freeform' ? 'Free-form' : 'Program'}
                                                         </div>
-                                                        <div>
-                                                            <span className="text-gray-400">Weight:</span>
-                                                            <span className="text-white ml-2">
-                                                                {log.weight_per_set && log.weight_per_set.length > 0 ? `${log.weight_per_set[0]} kg` : 'Bodyweight'}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-gray-400">Reps:</span>
-                                                            <span className="text-white ml-2">
-                                                                {log.reps_per_set ? log.reps_per_set.join(', ') : 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {log.notes && (
-                                                        <div className="mt-3 pt-3 border-t border-gray-600">
-                                                            <span className="text-gray-400 text-sm">Notes:</span>
-                                                            <p className="text-white text-sm mt-1">{log.notes}</p>
-                                                        </div>
-                                                    )}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditSession(session)}
+                                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white text-sm"
+                                                    >
+                                                        <EditIcon size={16} />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="bg-gray-800 rounded-lg p-6">
-                                    <div className="text-center py-12">
-                                        <div className="text-gray-400 text-lg mb-2">
-                                            Select a workout session
-                                        </div>
-                                        <p className="text-gray-500 text-sm">
-                                            Choose a session from the list to view its details
-                                        </p>
                                     </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Session Details */}
+                <div className="lg:col-span-2">
+                    {selectedSession ? (
+                        <div className="bg-gray-800 rounded-lg p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">
+                                        {selectedSession.session_name}
+                                    </h2>
+                                    <p className="text-gray-400">
+                                        {formatDate(selectedSession.session_date)}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => handleEditSession(selectedSession)}
+                                        className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-500 transition"
+                                    >
+                                        Edit Name
+                                    </button>
+                                    <button
+                                        onClick={startEditingSession}
+                                        className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700 transition"
+                                    >
+                                        Edit Workout
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteSession(selectedSession)}
+                                        className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
+                                    >
+                                        Delete
+                                    </button>
+                                    <div className="text-right">
+                                        <div className="text-sm text-gray-400">Session Type</div>
+                                        <div className="text-white font-semibold">
+                                            {selectedSession.session_type === 'freeform' ? 'Free-form' : 'Program'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {loadingLogs ? (
+                                <div className="text-center py-8">
+                                    <div className="text-cyan-400 text-lg">Loading exercises...</div>
+                                </div>
+                            ) : sessionLogs.length === 0 ? (
+                                <EmptyState title="No exercises logged for this session" />
+                            ) : (
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold text-white mb-4">
+                                        Exercises ({sessionLogs.length})
+                                    </h3>
+
+                                    {sessionLogs.map((log) => (
+                                        <div key={log.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold text-white">{log.exercise_name}</h3>
+                                                <div className="flex gap-2">
+                                                    <ExerciseHistoryButton
+                                                        exerciseId={log.exercise_id}
+                                                        exerciseName={log.exercise_name}
+                                                        variant="icon"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                <div>
+                                                    <span className="text-gray-400">Sets:</span>
+                                                    <span className="text-white ml-2">{log.sets_completed}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400">Weight:</span>
+                                                    <span className="text-white ml-2">
+                                                        {log.weight_per_set && log.weight_per_set.length > 0 ? `${log.weight_per_set[0]} kg` : 'Bodyweight'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400">Reps:</span>
+                                                    <span className="text-white ml-2">
+                                                        {log.reps_per_set ? log.reps_per_set.join(', ') : 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {log.notes && (
+                                                <div className="mt-3 pt-3 border-t border-gray-600">
+                                                    <span className="text-gray-400 text-sm">Notes:</span>
+                                                    <p className="text-white text-sm mt-1">{log.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="bg-gray-800 rounded-lg p-6">
+                            <div className="text-center py-12">
+                                <div className="text-gray-400 text-lg mb-2">
+                                    Select a workout session
+                                </div>
+                                <p className="text-gray-500 text-sm">
+                                    Choose a session from the list to view its details
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -841,6 +824,6 @@ export default function WorkoutHistory() {
                 </div>
             </Modal>
 
-        </div>
+        </PageLayout>
     );
 }

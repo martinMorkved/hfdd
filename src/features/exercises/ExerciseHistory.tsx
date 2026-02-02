@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorMessage } from '../../components/ui/ErrorMessage';
 
 interface ExerciseHistoryProps {
     exerciseId: string;
@@ -230,47 +233,21 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                     )}
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-900/20 border border-red-500 rounded-lg">
-                            <p className="text-red-400">{error}</p>
-                        </div>
+                        <ErrorMessage message={error} className="mb-6" />
                     )}
 
                     {!loading && !error && stats && (
                         <>
                             {/* Statistics */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Total Sessions</div>
-                                    <div className="text-white text-2xl font-bold">{stats.totalSessions}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Total Sets</div>
-                                    <div className="text-white text-2xl font-bold">{stats.totalSets}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Total Reps</div>
-                                    <div className="text-white text-2xl font-bold">{stats.totalReps}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Highest Weight</div>
-                                    <div className="text-white text-2xl font-bold">{formatWeight(stats.highestWeight)}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Most Reps</div>
-                                    <div className="text-white text-2xl font-bold">{stats.highestReps}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Most Sets</div>
-                                    <div className="text-white text-2xl font-bold">{stats.mostSets}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Avg Weight</div>
-                                    <div className="text-white text-2xl font-bold">{formatWeight(stats.averageWeight)}</div>
-                                </div>
-                                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-cyan-400 text-sm font-medium">Avg Reps</div>
-                                    <div className="text-white text-2xl font-bold">{stats.averageReps}</div>
-                                </div>
+                                <StatCard label="Total Sessions" value={stats.totalSessions} />
+                                <StatCard label="Total Sets" value={stats.totalSets} />
+                                <StatCard label="Total Reps" value={stats.totalReps} />
+                                <StatCard label="Highest Weight" value={formatWeight(stats.highestWeight)} />
+                                <StatCard label="Most Reps" value={stats.highestReps} />
+                                <StatCard label="Most Sets" value={stats.mostSets} />
+                                <StatCard label="Avg Weight" value={formatWeight(stats.averageWeight)} />
+                                <StatCard label="Avg Reps" value={stats.averageReps} />
                             </div>
 
                             {/* Date Range */}
@@ -331,10 +308,10 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                     )}
 
                     {!loading && !error && logs.length === 0 && (
-                        <div className="text-center py-8">
-                            <div className="text-gray-400 text-lg">No workout history found for this exercise.</div>
-                            <div className="text-gray-500 text-sm mt-2">Start logging workouts to see your progress!</div>
-                        </div>
+                        <EmptyState
+                            title="No workout history found for this exercise."
+                            description="Start logging workouts to see your progress!"
+                        />
                     )}
                 </div>
             </div>

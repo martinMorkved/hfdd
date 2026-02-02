@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../hooks/useWorkoutLogging';
-import { useWorkoutProgram } from '../hooks/useWorkoutProgram';
-import { Modal } from '../components/Modal';
-import { NumberInput } from '../components/NumberInput';
+import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
+import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
+import { Modal } from '../components/ui/Modal';
+import { NumberInput } from '../components/ui/NumberInput';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageLayout } from '../components/ui/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { ExerciseSelector } from '../components/ExerciseSelector';
-import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
+import { ExerciseSelector, ExerciseHistoryButton } from '../features/exercises';
 import { PlusIcon } from '../components/icons';
 
 export default function WorkoutLogger() {
@@ -222,11 +224,7 @@ export default function WorkoutLogger() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-white text-xl">Loading workout logger...</div>
-            </div>
-        );
+        return <LoadingScreen message="Loading workout logger..." />;
     }
 
     if (isProgramFlow && !activeProgram && !currentSession) {
@@ -248,31 +246,27 @@ export default function WorkoutLogger() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="p-8">
-                <div className="max-w-4xl mx-auto">
-                    {/* Header */}
-                    <div className="mb-8 flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-white mb-2">
-                                {location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
-                            </h1>
-                            <p className="text-gray-400">
-                                {currentSession ? (
-                                    <>
-                                        Session: {currentSession.session_name}
-                                        {currentSession.session_type === 'program' && activeProgram && (
-                                            <button
-                                                onClick={() => setShowChangeDayModal(true)}
-                                                className="ml-2 text-cyan-400 hover:text-cyan-300 transition text-sm underline"
-                                            >
-                                                Change
-                                            </button>
-                                        )}
-                                    </>
-                                ) : 'Create a new workout session'}
-                            </p>
-                        </div>
+        <PageLayout maxWidth="max-w-4xl">
+            <PageHeader
+                        title={location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
+                        subtitle={
+                            currentSession ? (
+                                <>
+                                    Session: {currentSession.session_name}
+                                    {currentSession.session_type === 'program' && activeProgram && (
+                                        <button
+                                            onClick={() => setShowChangeDayModal(true)}
+                                            className="ml-2 text-cyan-400 hover:text-cyan-300 transition text-sm underline"
+                                        >
+                                            Change
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                'Create a new workout session'
+                            )
+                        }
+                        actions={
                         <div className="flex gap-3 flex-shrink-0">
                                 <button
                                     onClick={() => {
@@ -294,7 +288,8 @@ export default function WorkoutLogger() {
                                     </button>
                                 )}
                         </div>
-                    </div>
+                        }
+                    />
 
                     {/* Existing Session Modal */}
                     <Modal
@@ -697,8 +692,6 @@ export default function WorkoutLogger() {
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
-        </div>
+        </PageLayout>
     );
 }

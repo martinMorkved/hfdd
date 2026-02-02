@@ -45,4 +45,4 @@ export const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({
             ))}
         </div>
     );
-}; 
+};

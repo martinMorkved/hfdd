@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
+import { useWorkoutProgram } from "../features/programs/useWorkoutProgram";
 import { Link } from "react-router-dom";
-import { ConfirmationModal } from "../components/Modal";
-import { ProgramCard } from "../components/ProgramCard";
+import { ConfirmationModal } from "../components/ui/Modal";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
+import { PageHeader } from "../components/ui/PageHeader";
+import { PageLayout } from "../components/ui/PageLayout";
+import { EmptyState } from "../components/ui/EmptyState";
+import { ProgramCard } from "../features/programs";
+import { getTotalExercises } from "../features/programs/utils";
 
 export default function Programs() {
     const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();
@@ -11,146 +16,134 @@ export default function Programs() {
     const [showReplaceModal, setShowReplaceModal] = useState(false);
     const [programToActivate, setProgramToActivate] = useState<{ id: string; name: string } | null>(null);
 
-    const getTotalExercises = (program: any) => {
-        return program.weeks.reduce((total: number, week: any) => {
-            return total + week.days.reduce((dayTotal: number, day: any) => {
-                return dayTotal + day.exercises.length;
-            }, 0);
-        }, 0);
-    };
-
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-cyan-400 text-xl">Loading programs...</div>
-            </div>
-        );
+        return <LoadingScreen message="Loading programs..." />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="p-4 sm:p-8">
-                <div className="max-w-[1100px] mx-auto">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white">My Programs</h1>
-                        <Link
-                            to="/program"
-                            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center"
-                        >
-                            Create New Program
-                        </Link>
+        <PageLayout maxWidth="max-w-[1100px]">
+            <PageHeader
+                title="My Programs"
+                actions={
+                    <Link
+                        to="/program"
+                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center inline-block"
+                    >
+                        Create New Program
+                    </Link>
+                }
+            />
+
+            {/* Active Program Display */}
+            {activeProgram && (
+                <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500">
+                    <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full mb-3">
+                        ACTIVE PROGRAM
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{activeProgram.name}</h2>
+
+                    {activeProgram.description && (
+                        <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-3 mb-4 text-sm text-cyan-200">
+                        <div className="flex items-center gap-2">
+                            <span className="text-cyan-400">•</span>
+                            <span>{activeProgram.weeks.length} weeks</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-cyan-400">•</span>
+                            <span>{activeProgram.weeks[0]?.days.length || 0} days/week</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-cyan-400">•</span>
+                            <span>{getTotalExercises(activeProgram)} exercises</span>
+                        </div>
                     </div>
 
-                    {/* Active Program Display */}
-                    {activeProgram && (
-                        <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500">
-                            <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full mb-3">
-                                ACTIVE PROGRAM
-                            </span>
-                            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{activeProgram.name}</h2>
-
-                            {activeProgram.description && (
-                                <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
-                            )}
-
-                            <div className="grid grid-cols-3 gap-3 mb-4 text-sm text-cyan-200">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-cyan-400">•</span>
-                                    <span>{activeProgram.weeks.length} weeks</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-cyan-400">•</span>
-                                    <span>{activeProgram.weeks[0]?.days.length || 0} days/week</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-cyan-400">•</span>
-                                    <span>{getTotalExercises(activeProgram)} exercises</span>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => deactivateProgram()}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
-                            >
-                                Deactivate
-                            </button>
-                        </div>
-                    )}
-
-                    {programs.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-gray-400 text-lg mb-4">No programs created yet</div>
-                            <p className="text-gray-500 mb-6">Start by creating your first workout program</p>
-                            <Link
-                                to="/program"
-                                className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
-                            >
-                                Create Your First Program
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                            {programs.map((program) => (
-                                <ProgramCard
-                                    key={program.id}
-                                    program={program}
-                                    isActive={activeProgram?.id === program.id}
-                                    onActivate={(id, name) => {
-                                        if (activeProgram) {
-                                            setProgramToActivate({ id, name });
-                                            setShowReplaceModal(true);
-                                        } else {
-                                            activateProgram(id);
-                                        }
-                                    }}
-                                    onDelete={(id, name) => {
-                                        setProgramToDelete({ id, name });
-                                        setShowDeleteModal(true);
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Delete Confirmation Modal */}
-                    <ConfirmationModal
-                        isOpen={showDeleteModal}
-                        onClose={() => {
-                            setShowDeleteModal(false);
-                            setProgramToDelete(null);
-                        }}
-                        onConfirm={() => {
-                            if (programToDelete) {
-                                deleteProgram(programToDelete.id);
-                            }
-                        }}
-                        title="Delete Program"
-                        message={`Are you sure you want to delete "${programToDelete?.name}"? This action cannot be undone.`}
-                        confirmText="Delete"
-                        confirmButtonStyle="bg-red-600 hover:bg-red-700"
-                    />
-
-                    {/* Replace Active Program Modal */}
-                    <ConfirmationModal
-                        isOpen={showReplaceModal}
-                        onClose={() => {
-                            setShowReplaceModal(false);
-                            setProgramToActivate(null);
-                        }}
-                        onConfirm={() => {
-                            if (programToActivate) {
-                                activateProgram(programToActivate.id);
-                                setShowReplaceModal(false);
-                                setProgramToActivate(null);
-                            }
-                        }}
-                        title="Replace Active Program"
-                        message={`You already have "${activeProgram?.name}" as your active program. Would you like to deactivate it and activate "${programToActivate?.name}" instead?`}
-                        confirmText="Replace Program"
-                        confirmButtonStyle="bg-green-600 hover:bg-green-700"
-                    />
+                    <button
+                        onClick={() => deactivateProgram()}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                    >
+                        Deactivate
+                    </button>
                 </div>
-            </div>
-        </div>
+            )}
+
+            {programs.length === 0 ? (
+                <EmptyState
+                    title="No programs created yet"
+                    description="Start by creating your first workout program"
+                    action={
+                        <Link
+                            to="/program"
+                            className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold inline-block"
+                        >
+                            Create Your First Program
+                        </Link>
+                    }
+                />
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {programs.map((program) => (
+                        <ProgramCard
+                            key={program.id}
+                            program={program}
+                            isActive={activeProgram?.id === program.id}
+                            onActivate={(id, name) => {
+                                if (activeProgram) {
+                                    setProgramToActivate({ id, name });
+                                    setShowReplaceModal(true);
+                                } else {
+                                    activateProgram(id);
+                                }
+                            }}
+                            onDelete={(id, name) => {
+                                setProgramToDelete({ id, name });
+                                setShowDeleteModal(true);
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setProgramToDelete(null);
+                }}
+                onConfirm={() => {
+                    if (programToDelete) {
+                        deleteProgram(programToDelete.id);
+                    }
+                }}
+                title="Delete Program"
+                message={`Are you sure you want to delete "${programToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                confirmButtonStyle="bg-red-600 hover:bg-red-700"
+            />
+
+            {/* Replace Active Program Modal */}
+            <ConfirmationModal
+                isOpen={showReplaceModal}
+                onClose={() => {
+                    setShowReplaceModal(false);
+                    setProgramToActivate(null);
+                }}
+                onConfirm={() => {
+                    if (programToActivate) {
+                        activateProgram(programToActivate.id);
+                        setShowReplaceModal(false);
+                        setProgramToActivate(null);
+                    }
+                }}
+                title="Replace Active Program"
+                message={`You already have "${activeProgram?.name}" as your active program. Would you like to deactivate it and activate "${programToActivate?.name}" instead?`}
+                confirmText="Replace Program"
+                confirmButtonStyle="bg-green-600 hover:bg-green-700"
+            />
+        </PageLayout>
     );
 }

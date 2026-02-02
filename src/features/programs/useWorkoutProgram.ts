@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
-import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../contexts/AuthContext";
+import type { Exercise } from "../exercises/types";
 
 export type ProgramStructure =
     | "weekly"        // Traditional 7-day weeks
@@ -8,12 +9,7 @@ export type ProgramStructure =
     | "block"         // Mesocycle blocks
     | "frequency";    // Full body, single template
 
-export type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscleGroup?: string;
-};
+export type { Exercise };
 
 export type WorkoutExercise = {
     id: string;
