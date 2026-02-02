@@ -346,54 +346,72 @@ export const useWorkoutProgram = () => {
         }
     };
 
-    // Update exercise details
-    const updateExercise = async (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => {
+    // Update exercise details locally only (no DB). Call saveProgramChanges() to persist.
+    const updateExerciseLocal = (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => {
         if (!currentProgram) return;
 
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName
+                                ? {
+                                    ...d,
+                                    exercises: d.exercises.map(e =>
+                                        e.exerciseId === exerciseId ? { ...e, ...updates } : e
+                                    )
+                                }
+                                : d
+                        )
+                    }
+                    : w
+            )
+        };
+
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+    };
+
+    // Persist all exercise details (sets, reps, comment, alternatives) for the current program to the database.
+    // Returns true if all updates succeeded, false otherwise.
+    const saveProgramChanges = async (): Promise<boolean> => {
+        if (!currentProgram) return false;
+
         try {
-            // Find the exercise in the current program
-            const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
-            if (!week) return;
+            for (const week of currentProgram.weeks) {
+                for (const day of week.days) {
+                    for (const exercise of day.exercises) {
+                        const payload: Record<string, unknown> = {
+                            sets: exercise.sets,
+                            reps: Array.isArray(exercise.reps) ? exercise.reps : [],
+                            comment: exercise.comment ?? null,
+                            alternatives: exercise.alternatives ?? []
+                        };
+                        const { data, error } = await supabase
+                            .from('workout_exercises')
+                            .update(payload)
+                            .eq('id', exercise.id)
+                            .select('id')
+                            .maybeSingle();
 
-            const day = week.days.find(d => d.name === dayName);
-            if (!day) return;
-
-            const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-            if (!exercise) return;
-
-            // Update in database
-            const { error } = await supabase
-                .from('workout_exercises')
-                .update({
-                    sets: updates.sets,
-                    reps: updates.reps,
-                    comment: updates.comment,
-                    alternatives: updates.alternatives
-                })
-                .eq('id', exercise.id);
-
-            if (error) {
-                console.error('Error updating exercise:', error);
-                return;
-            }
-
-            // Update local state
-            const updatedProgram = { ...currentProgram };
-            const updatedWeek = updatedProgram.weeks.find(w => w.weekNumber === weekNumber);
-            if (updatedWeek) {
-                const updatedDay = updatedWeek.days.find(d => d.name === dayName);
-                if (updatedDay) {
-                    const updatedExercise = updatedDay.exercises.find(e => e.exerciseId === exerciseId);
-                    if (updatedExercise) {
-                        Object.assign(updatedExercise, updates);
+                        if (error) {
+                            console.error('Error saving exercise', exercise.id, error);
+                            return false;
+                        }
+                        if (!data) {
+                            console.error('No row updated for exercise', exercise.id, '- check RLS or id');
+                            return false;
+                        }
                     }
                 }
             }
-
-            setCurrentProgram(updatedProgram);
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+            return true;
         } catch (err) {
-            console.error('Error updating exercise:', err);
+            console.error('Error saving program changes:', err);
+            return false;
         }
     };
 
@@ -631,7 +649,8 @@ export const useWorkoutProgram = () => {
         createNewProgram,
         updateProgramInArray,
         addExerciseToDay,
-        updateExercise,
+        updateExerciseLocal,
+        saveProgramChanges,
         removeExerciseFromDay,
         addWeek,
         selectProgram,

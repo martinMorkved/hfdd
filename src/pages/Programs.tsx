@@ -116,7 +116,10 @@ export default function Programs() {
                 }}
                 onConfirm={() => {
                     if (programToDelete) {
-                        deleteProgram(programToDelete.id);
+                        const id = programToDelete.id;
+                        setShowDeleteModal(false);
+                        setProgramToDelete(null);
+                        deleteProgram(id);
                     }
                 }}
                 title="Delete Program"

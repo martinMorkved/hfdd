@@ -55,7 +55,8 @@ export default function WorkoutProgram() {
         setProgramStructure,
         createNewProgram,
         addExerciseToDay,
-        updateExercise,
+        updateExerciseLocal,
+        saveProgramChanges,
         removeExerciseFromDay,
         addWeek,
         selectProgram,
@@ -83,7 +84,7 @@ export default function WorkoutProgram() {
         updateExerciseRep,
         updateExerciseComment,
         updateExerciseAlternatives
-    } = useExerciseManagement(currentProgram, addExerciseToDay, updateExercise, removeExerciseFromDay);
+    } = useExerciseManagement(currentProgram, addExerciseToDay, updateExerciseLocal, removeExerciseFromDay);
 
     const {
         dragOverDay,
@@ -92,6 +93,7 @@ export default function WorkoutProgram() {
         handleDragOver,
         handleDragLeave,
         handleWorkoutExerciseDragStart,
+        handleWorkoutExerciseDragEnd,
         handleRemoveZoneDragOver,
         handleRemoveZoneDrop,
         handleDrop
@@ -107,6 +109,8 @@ export default function WorkoutProgram() {
     const [editName, setEditName] = useState("");
     const [editDescription, setEditDescription] = useState("");
     const [editStructure, setEditStructure] = useState<ProgramStructure>("weekly");
+    // Local string state for rep inputs so "select all, type 5" replaces instead of appending
+    const [editingReps, setEditingReps] = useState<Record<string, string>>({});
 
     // Sync editable fields when current program changes
     useEffect(() => {
@@ -331,12 +335,20 @@ export default function WorkoutProgram() {
                                                     <EditIcon size={18} className="text-gray-400" />
                                                 </span>
                                             </div>
-                                            <button
-                                                onClick={() => setShowDeleteModal(true)}
-                                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium shrink-0"
-                                            >
-                                                Delete Program
-                                            </button>
+                                            <div className="flex gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => saveProgramChanges()}
+                                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowDeleteModal(true)}
+                                                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                                                >
+                                                    Delete Program
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="relative max-w-md">
                                             <input
@@ -415,6 +427,7 @@ export default function WorkoutProgram() {
                                                                             className="bg-gray-700 rounded-lg p-4 cursor-move"
                                                                             draggable
                                                                             onDragStart={() => handleWorkoutExerciseDragStart(week.weekNumber, day.name, exercise.exerciseId)}
+                                                                            onDragEnd={handleWorkoutExerciseDragEnd}
                                                                         >
                                                                             <div className="flex items-center justify-between mb-3">
                                                                                 <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
@@ -457,17 +470,32 @@ export default function WorkoutProgram() {
                                                                                     <div className="flex-1 min-w-0">
                                                                                         <label className="text-gray-300 text-sm font-medium mb-2 block">Reps per Set</label>
                                                                                         <div className="flex flex-wrap gap-2">
-                                                                                            {exercise.reps.map((rep, index) => (
-                                                                                                <input
-                                                                                                    key={index}
-                                                                                                    type="number"
-                                                                                                    min="1"
-                                                                                                    value={rep}
-                                                                                                    onChange={(e) => updateExerciseRep(week.weekNumber, day.name, exercise.exerciseId, index, parseInt(e.target.value) || 1)}
-                                                                                                    className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                                                                    placeholder={`Set ${index + 1}`}
-                                                                                                />
-                                                                                            ))}
+                                                                                            {exercise.reps.map((rep, index) => {
+                                                                                                const repKey = `${exercise.id}-${index}`;
+                                                                                                const repDisplay = repKey in editingReps ? editingReps[repKey] : String(rep);
+                                                                                                return (
+                                                                                                    <input
+                                                                                                        key={index}
+                                                                                                        type="text"
+                                                                                                        inputMode="numeric"
+                                                                                                        value={repDisplay}
+                                                                                                        onChange={(e) => setEditingReps(prev => ({ ...prev, [repKey]: e.target.value }))}
+                                                                                                        onBlur={() => {
+                                                                                                            const raw = editingReps[repKey] ?? String(rep);
+                                                                                                            const parsed = parseInt(raw, 10);
+                                                                                                            const value = (!isNaN(parsed) && parsed >= 1) ? parsed : rep;
+                                                                                                            updateExerciseRep(week.weekNumber, day.name, exercise.exerciseId, index, value);
+                                                                                                            setEditingReps(prev => {
+                                                                                                                const next = { ...prev };
+                                                                                                                delete next[repKey];
+                                                                                                                return next;
+                                                                                                            });
+                                                                                                        }}
+                                                                                                        className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                                                                        placeholder={`Set ${index + 1}`}
+                                                                                                    />
+                                                                                                );
+                                                                                            })}
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -534,7 +562,10 @@ export default function WorkoutProgram() {
                                         {/* Finish Button */}
                                         <div className="flex justify-center pt-6">
                                             <button
-                                                onClick={() => navigate("/programs")}
+                                                onClick={async () => {
+                                                    await saveProgramChanges();
+                                                    navigate("/programs");
+                                                }}
                                                 className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
                                             >
                                                 Finish

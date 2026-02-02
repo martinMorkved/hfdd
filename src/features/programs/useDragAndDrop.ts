@@ -28,6 +28,11 @@ export const useDragAndDrop = (
         setShowRemoveZone(true);
     };
 
+    const handleWorkoutExerciseDragEnd = () => {
+        setDraggedWorkoutExercise(null);
+        setShowRemoveZone(false);
+    };
+
     const handleRemoveZoneDragOver = (e: React.DragEvent) => {
         e.preventDefault();
     };
@@ -50,6 +55,10 @@ export const useDragAndDrop = (
             setDraggedExercise(null);
             setDragOverDay(null);
         }
+        if (draggedWorkoutExercise) {
+            setDraggedWorkoutExercise(null);
+            setShowRemoveZone(false);
+        }
     };
 
     return {
@@ -61,6 +70,7 @@ export const useDragAndDrop = (
         handleDragOver,
         handleDragLeave,
         handleWorkoutExerciseDragStart,
+        handleWorkoutExerciseDragEnd,
         handleRemoveZoneDragOver,
         handleRemoveZoneDrop,
         handleDrop

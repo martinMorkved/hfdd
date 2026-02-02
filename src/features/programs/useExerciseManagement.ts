@@ -5,7 +5,7 @@ import type { WorkoutProgram, WorkoutExercise } from "./useWorkoutProgram";
 export const useExerciseManagement = (
     currentProgram: WorkoutProgram | null,
     addExerciseToDay: (exercise: Exercise, weekNumber: number, dayName: string) => Promise<void>,
-    updateExercise: (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => Promise<void>,
+    updateExerciseLocal: (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => void,
     removeExerciseFromDay: (weekNumber: number, dayName: string, exerciseId: string) => Promise<void>
 ) => {
     const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
@@ -27,7 +27,7 @@ export const useExerciseManagement = (
                         newReps.push(exercise.reps[i] || lastRep);
                     }
 
-                    updateExercise(weekNumber, dayName, exerciseId, {
+                    updateExerciseLocal(weekNumber, dayName, exerciseId, {
                         sets,
                         reps: newReps
                     });
@@ -48,7 +48,7 @@ export const useExerciseManagement = (
                     const newReps = [...exercise.reps];
                     newReps[repIndex] = reps;
 
-                    updateExercise(weekNumber, dayName, exerciseId, {
+                    updateExerciseLocal(weekNumber, dayName, exerciseId, {
                         reps: newReps
                     });
                 }
@@ -59,7 +59,7 @@ export const useExerciseManagement = (
     const updateExerciseComment = (weekNumber: number, dayName: string, exerciseId: string, comment: string) => {
         if (!currentProgram) return;
 
-        updateExercise(weekNumber, dayName, exerciseId, {
+        updateExerciseLocal(weekNumber, dayName, exerciseId, {
             comment
         });
     };
@@ -67,7 +67,7 @@ export const useExerciseManagement = (
     const updateExerciseAlternatives = (weekNumber: number, dayName: string, exerciseId: string, alternatives: string[]) => {
         if (!currentProgram) return;
 
-        updateExercise(weekNumber, dayName, exerciseId, {
+        updateExerciseLocal(weekNumber, dayName, exerciseId, {
             alternatives
         });
     };
