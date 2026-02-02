@@ -41,7 +41,7 @@ export type WorkoutProgram = {
     weeks: WorkoutWeek[];
 };
 
-const isTempId = (id: string) => id.startsWith("temp-");
+const isTempId = (id: string) => id != null && typeof id === "string" && id.trim().startsWith("temp-");
 const nextTempId = () => `temp-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export const useWorkoutProgram = () => {
@@ -409,6 +409,7 @@ export const useWorkoutProgram = () => {
 
                 for (const day of week.days) {
                     if (isTempId(day.id)) {
+                        // New day (temp id) – insert; never send temp id to DB
                         const { data: inserted, error } = await supabase
                             .from('workout_days')
                             .insert([{ week_id: realWeekId, name: day.name, day_number: week.days.indexOf(day) + 1, day_order: week.days.indexOf(day) + 1 }])
@@ -419,7 +420,8 @@ export const useWorkoutProgram = () => {
                             return false;
                         }
                         tempToRealDay[day.id] = inserted.id;
-                    } else {
+                    } else if (typeof day.id === "string" && !day.id.startsWith("temp-")) {
+                        // Existing day (real UUID) – update name only; never use temp id in .eq()
                         const { error } = await supabase.from('workout_days').update({ name: day.name }).eq('id', day.id);
                         if (error) {
                             console.error('Error updating day name', day.id, error);
@@ -442,11 +444,12 @@ export const useWorkoutProgram = () => {
             for (const week of currentProgram.weeks) {
                 for (const day of week.days) {
                     const realDayId = tempToRealDay[day.id] ?? day.id;
+                    const insertedExIds: string[] = [];
 
                     for (let i = 0; i < day.exercises.length; i++) {
                         const ex = day.exercises[i];
                         if (isTempId(ex.id)) {
-                            const { error } = await supabase.from('workout_exercises').insert([{
+                            const { data: inserted, error } = await supabase.from('workout_exercises').insert([{
                                 day_id: realDayId,
                                 exercise_id: ex.exerciseId,
                                 exercise_name: ex.exerciseName,
@@ -455,12 +458,14 @@ export const useWorkoutProgram = () => {
                                 comment: ex.comment ?? null,
                                 alternatives: ex.alternatives ?? [],
                                 exercise_order: i + 1
-                            }]);
+                            }]).select('id').single();
                             if (error) {
                                 console.error('Error inserting exercise', error);
                                 return false;
                             }
-                        } else {
+                            if (inserted?.id) insertedExIds.push(inserted.id);
+                        } else if (typeof ex.id === "string" && !ex.id.startsWith("temp-")) {
+                            // Existing exercise (real UUID) – update; never use temp id in .eq()
                             const { error } = await supabase
                                 .from('workout_exercises')
                                 .update({
@@ -478,9 +483,11 @@ export const useWorkoutProgram = () => {
                         }
                     }
 
+                    // Only delete exercises that are in DB but no longer in our list (don't delete newly inserted)
                     const realExIds = day.exercises.filter(e => !isTempId(e.id)).map(e => e.id);
+                    const keepExIds = [...realExIds, ...insertedExIds];
                     const { data: existingEx } = await supabase.from('workout_exercises').select('id').eq('day_id', realDayId);
-                    const exToDelete = (existingEx || []).filter((r: { id: string }) => !realExIds.includes(r.id));
+                    const exToDelete = (existingEx || []).filter((r: { id: string }) => !keepExIds.includes(r.id));
                     for (const row of exToDelete) {
                         await supabase.from('workout_exercises').delete().eq('id', (row as { id: string }).id);
                     }
@@ -496,6 +503,78 @@ export const useWorkoutProgram = () => {
             console.error('Error saving program changes:', err);
             return false;
         }
+    };
+
+    // Move exercise up or down within a day (local only). Persisted when user clicks Save or Save and Finish.
+    const moveExerciseInDay = (weekNumber: number, dayName: string, workoutExerciseId: string, direction: 'up' | 'down') => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
+
+        const idx = day.exercises.findIndex(e => e.id === workoutExerciseId);
+        if (idx < 0) return;
+        if (direction === 'up' && idx === 0) return;
+        if (direction === 'down' && idx === day.exercises.length - 1) return;
+
+        const newExercises = [...day.exercises];
+        const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+        [newExercises[idx], newExercises[swapWith]] = [newExercises[swapWith], newExercises[idx]];
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName ? { ...d, exercises: newExercises } : d
+                        )
+                    }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+    };
+
+    // Reorder exercise within a day by moving to insertIndex (0-based, "before this position"). Used for drag-and-drop reorder.
+    const reorderExerciseInDay = (weekNumber: number, dayName: string, workoutExerciseId: string, insertIndex: number) => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
+
+        const currentIndex = day.exercises.findIndex(e => e.id === workoutExerciseId);
+        if (currentIndex < 0) return;
+        if (currentIndex === insertIndex) return;
+
+        const exercises = day.exercises.filter(e => e.id !== workoutExerciseId);
+        const adjustedIndex = currentIndex < insertIndex ? insertIndex - 1 : insertIndex;
+        const clamped = Math.max(0, Math.min(adjustedIndex, exercises.length));
+        const newExercises = [...exercises.slice(0, clamped), day.exercises[currentIndex], ...exercises.slice(clamped)];
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName ? { ...d, exercises: newExercises } : d
+                        )
+                    }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
     // Remove exercise from day (local only). Persisted when user clicks Save or Save and Finish.
@@ -774,6 +853,8 @@ export const useWorkoutProgram = () => {
         updateProgramInArray,
         addExerciseToDay,
         updateExerciseLocal,
+        moveExerciseInDay,
+        reorderExerciseInDay,
         saveProgramChanges,
         removeExerciseFromDay,
         addWeek,

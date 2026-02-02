@@ -7,7 +7,7 @@ export const useDragAndDrop = (
 ) => {
     const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null);
     const [dragOverDay, setDragOverDay] = useState<{ weekNumber: number, dayName: string } | null>(null);
-    const [draggedWorkoutExercise, setDraggedWorkoutExercise] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
+    const [draggedWorkoutExercise, setDraggedWorkoutExercise] = useState<{ weekNumber: number, dayName: string, exerciseId: string, workoutExerciseId: string } | null>(null);
     const [showRemoveZone, setShowRemoveZone] = useState(false);
 
     const handleDragStart = (exercise: Exercise) => {
@@ -23,8 +23,8 @@ export const useDragAndDrop = (
         setDragOverDay(null);
     };
 
-    const handleWorkoutExerciseDragStart = (weekNumber: number, dayName: string, exerciseId: string) => {
-        setDraggedWorkoutExercise({ weekNumber, dayName, exerciseId });
+    const handleWorkoutExerciseDragStart = (weekNumber: number, dayName: string, exerciseId: string, workoutExerciseId: string) => {
+        setDraggedWorkoutExercise({ weekNumber, dayName, exerciseId, workoutExerciseId });
         setShowRemoveZone(true);
     };
 

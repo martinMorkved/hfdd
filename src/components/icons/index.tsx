@@ -12,19 +12,19 @@ const defaultProps: IconProps = {
 };
 
 // Dumbbell - for exercises/workouts
-export const DumbbellIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const DumbbellIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -39,19 +39,19 @@ export const DumbbellIcon: React.FC<IconProps> = ({
 );
 
 // Calendar - for scheduling/programs
-export const CalendarIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const CalendarIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -63,19 +63,19 @@ export const CalendarIcon: React.FC<IconProps> = ({
 );
 
 // Chart - for stats/progress
-export const ChartIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const ChartIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -85,19 +85,19 @@ export const ChartIcon: React.FC<IconProps> = ({
 );
 
 // Clipboard/List - for programs
-export const ClipboardIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const ClipboardIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -109,19 +109,19 @@ export const ClipboardIcon: React.FC<IconProps> = ({
 );
 
 // Clock/History - for workout history
-export const ClockIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const ClockIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -131,19 +131,19 @@ export const ClockIcon: React.FC<IconProps> = ({
 );
 
 // Plus - for adding items
-export const PlusIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const PlusIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -153,19 +153,19 @@ export const PlusIcon: React.FC<IconProps> = ({
 );
 
 // Home/Dashboard
-export const HomeIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const HomeIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -175,19 +175,19 @@ export const HomeIcon: React.FC<IconProps> = ({
 );
 
 // Running figure - dynamic workout icon
-export const RunnerIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const RunnerIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -200,19 +200,19 @@ export const RunnerIcon: React.FC<IconProps> = ({
 );
 
 // Trophy - for achievements/library
-export const TrophyIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const TrophyIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -225,19 +225,19 @@ export const TrophyIcon: React.FC<IconProps> = ({
 );
 
 // Settings/Gear
-export const SettingsIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const SettingsIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -254,19 +254,19 @@ export const SettingsIcon: React.FC<IconProps> = ({
 );
 
 // User/Profile
-export const UserIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const UserIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -276,19 +276,19 @@ export const UserIcon: React.FC<IconProps> = ({
 );
 
 // Logout/Sign out
-export const LogoutIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const LogoutIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -299,19 +299,19 @@ export const LogoutIcon: React.FC<IconProps> = ({
 );
 
 // Check/Complete
-export const CheckIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const CheckIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -320,19 +320,19 @@ export const CheckIcon: React.FC<IconProps> = ({
 );
 
 // X/Close
-export const XIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const XIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -365,19 +365,19 @@ export const InfoIcon: React.FC<IconProps> = ({
 );
 
 // Edit/Pencil
-export const EditIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const EditIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -386,19 +386,19 @@ export const EditIcon: React.FC<IconProps> = ({
 );
 
 // Trash/Delete
-export const TrashIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const TrashIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -410,20 +410,40 @@ export const TrashIcon: React.FC<IconProps> = ({
     </svg>
 );
 
-// Arrow Right
-export const ArrowRightIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+// Chevron Up / Chevron Down (reorder)
+export const ChevronUpIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M18 15l-6-6-6 6" />
+    </svg>
+);
+export const ChevronDownIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
+}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M6 9l6 6 6-6" />
+    </svg>
+);
+
+// Arrow Right
+export const ArrowRightIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
+}) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -433,19 +453,19 @@ export const ArrowRightIcon: React.FC<IconProps> = ({
 );
 
 // Menu/Hamburger
-export const MenuIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const MenuIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -456,19 +476,19 @@ export const MenuIcon: React.FC<IconProps> = ({
 );
 
 // Search
-export const SearchIcon: React.FC<IconProps> = ({ 
-    size = defaultProps.size, 
-    className = '', 
-    strokeWidth = defaultProps.strokeWidth 
+export const SearchIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
 }) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={strokeWidth}
-        strokeLinecap="round" 
+        strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
     >
@@ -478,18 +498,18 @@ export const SearchIcon: React.FC<IconProps> = ({
 );
 
 // HFDD Logo - stacked HF over DD with connected lines
-export const HFDDLogo: React.FC<IconProps> = ({ 
-    size = 32, 
+export const HFDDLogo: React.FC<IconProps> = ({
+    size = 32,
     className = ''
 }) => (
-    <svg 
-        width={size} 
-        height={size * 1.1} 
-        viewBox="0 0 36 40" 
-        fill="none" 
-        stroke="currentColor" 
+    <svg
+        width={size}
+        height={size * 1.1}
+        viewBox="0 0 36 40"
+        fill="none"
+        stroke="currentColor"
         strokeWidth={2.5}
-        strokeLinecap="square" 
+        strokeLinecap="square"
         strokeLinejoin="miter"
         className={className}
     >
@@ -499,22 +519,22 @@ export const HFDDLogo: React.FC<IconProps> = ({
         <path d="M10 1v18" />
         {/* H - horizontal bar */}
         <path d="M2 10h8" />
-        
+
         {/* F - left vertical (connects to H area) */}
         <path d="M16 1v18" />
         {/* F - top horizontal */}
         <path d="M16 1h12" />
         {/* F - middle horizontal */}
         <path d="M16 10h10" />
-        
+
         {/* Connecting line between H and F at top */}
         <path d="M10 1h6" />
-        
+
         {/* D1 - left D (shares left stroke with H) */}
         <path d="M2 21h6" />
         <path d="M2 39h6" />
         <path d="M8 21c6 0 9 4 9 9s-3 9-9 9" />
-        
+
         {/* D2 - right D */}
         <path d="M20 21v18" />
         <path d="M20 21h6" />

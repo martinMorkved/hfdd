@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { supabase } from "../lib/supabase";
-import { TrashIcon, EditIcon, CheckIcon } from "../components/icons";
+import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
 import type { Exercise } from "../features/exercises/types";
 import { useWorkoutProgram, type ProgramStructure } from "../features/programs/useWorkoutProgram";
@@ -56,6 +56,8 @@ export default function WorkoutProgram() {
         createNewProgram,
         addExerciseToDay,
         updateExerciseLocal,
+        moveExerciseInDay,
+        reorderExerciseInDay,
         saveProgramChanges,
         removeExerciseFromDay,
         addWeek,
@@ -92,6 +94,7 @@ export default function WorkoutProgram() {
 
     const {
         dragOverDay,
+        draggedWorkoutExercise,
         showRemoveZone,
         handleDragStart,
         handleDragOver,
@@ -123,6 +126,8 @@ export default function WorkoutProgram() {
     const [editingDayName, setEditingDayName] = useState("");
     // Save button success feedback (green "Saved" + checkmark, then reset)
     const [saveSuccess, setSaveSuccess] = useState(false);
+    // Drag-and-drop reorder: show drop indicator at this position (same day)
+    const [dropTargetReorder, setDropTargetReorder] = useState<{ weekNumber: number; dayName: string; insertIndex: number } | null>(null);
 
     // Sync editable fields when current program changes
     useEffect(() => {
@@ -441,8 +446,8 @@ export default function WorkoutProgram() {
                                                                 : 'bg-gray-800 border-gray-700'
                                                                 }`}
                                                             onDragOver={(e) => handleDragOver(e, week.weekNumber, day.name)}
-                                                            onDragLeave={handleDragLeave}
-                                                            onDrop={() => handleDrop(week.weekNumber, day.name)}
+                                                            onDragLeave={() => { handleDragLeave(); setDropTargetReorder(null); }}
+                                                            onDrop={() => { handleDrop(week.weekNumber, day.name); setDropTargetReorder(null); }}
                                                         >
                                                             <div className="flex items-center justify-between mb-6">
                                                                 {editingDayId === day.id ? (
@@ -513,136 +518,188 @@ export default function WorkoutProgram() {
                                                                 <p className="text-gray-400 text-sm">No exercises added</p>
                                                             ) : (
                                                                 <div className="space-y-4">
-                                                                    {day.exercises.map(exercise => (
-                                                                        <div
-                                                                            key={exercise.id}
-                                                                            className="bg-gray-700 rounded-lg p-4 cursor-move"
-                                                                            draggable
-                                                                            onDragStart={() => handleWorkoutExerciseDragStart(week.weekNumber, day.name, exercise.exerciseId)}
-                                                                            onDragEnd={handleWorkoutExerciseDragEnd}
-                                                                        >
-                                                                            <div className="flex items-center justify-between mb-3">
-                                                                                <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
-                                                                                <div className="flex gap-2">
-                                                                                    <ExerciseHistoryButton
-                                                                                        exerciseId={exercise.exerciseId}
-                                                                                        exerciseName={exercise.exerciseName}
-                                                                                        variant="icon"
-                                                                                    />
-                                                                                    <button
-                                                                                        onClick={() => openAlternativesModal(week.weekNumber, day.name, exercise.exerciseId)}
-                                                                                        className="text-cyan-400 hover:text-cyan-300 text-sm"
-                                                                                    >
-                                                                                        Alternatives
-                                                                                    </button>
-                                                                                    <div className="text-xs text-gray-400">
-                                                                                        Drag to remove
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div className="mb-4">
-                                                                                <div className="flex gap-2 flex-wrap items-end">
-                                                                                    {exercise.reps.map((rep, index) => {
-                                                                                        const repKey = `${exercise.id}-${index}`;
-                                                                                        const repDisplay = repKey in editingReps ? editingReps[repKey] : String(rep);
-                                                                                        return (
-                                                                                            <div key={index} className="flex flex-col">
-                                                                                                <span className="text-gray-400 text-sm mb-1">Set {index + 1}:</span>
-                                                                                                <div className="flex items-center gap-1">
-                                                                                                    <input
-                                                                                                        type="text"
-                                                                                                        inputMode="numeric"
-                                                                                                        value={repDisplay}
-                                                                                                        onChange={(e) => setEditingReps(prev => ({ ...prev, [repKey]: e.target.value }))}
-                                                                                                        onBlur={() => {
-                                                                                                            const raw = editingReps[repKey] ?? String(rep);
-                                                                                                            const parsed = parseInt(raw, 10);
-                                                                                                            const value = (!isNaN(parsed) && parsed >= 1) ? parsed : rep;
-                                                                                                            updateExerciseRep(week.weekNumber, day.name, exercise.exerciseId, index, value);
-                                                                                                            setEditingReps(prev => {
-                                                                                                                const next = { ...prev };
-                                                                                                                delete next[repKey];
-                                                                                                                return next;
-                                                                                                            });
-                                                                                                        }}
-                                                                                                        className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                                                                        placeholder={`Reps`}
-                                                                                                    />
-                                                                                                    {exercise.reps.length > 1 && (
-                                                                                                        <button
-                                                                                                            type="button"
-                                                                                                            onClick={() => {
-                                                                                                                const newReps = exercise.reps.filter((_, i) => i !== index);
-                                                                                                                updateExerciseLocal(week.weekNumber, day.name, exercise.exerciseId, {
-                                                                                                                    reps: newReps,
-                                                                                                                    sets: newReps.length
-                                                                                                                });
-                                                                                                                setEditingReps(prev => {
-                                                                                                                    const next = { ...prev };
-                                                                                                                    exercise.reps.forEach((_, i) => delete next[`${exercise.id}-${i}`]);
-                                                                                                                    return next;
-                                                                                                                });
-                                                                                                            }}
-                                                                                                            className="text-gray-500 hover:text-red-400 transition text-lg leading-none px-1"
-                                                                                                            title="Remove set"
-                                                                                                        >
-                                                                                                            ×
-                                                                                                        </button>
-                                                                                                    )}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        );
-                                                                                    })}
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => updateExerciseSets(week.weekNumber, day.name, exercise.exerciseId, exercise.sets + 1)}
-                                                                                        className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center shrink-0"
-                                                                                        title="Add set"
-                                                                                    >
-                                                                                        +
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div>
-                                                                                <label className="text-gray-300 text-sm font-medium mb-2 block">Comment</label>
-                                                                                <textarea
-                                                                                    value={exercise.comment || ""}
-                                                                                    onChange={(e) => updateExerciseComment(week.weekNumber, day.name, exercise.exerciseId, e.target.value)}
-                                                                                    placeholder="Add notes about form, progression, etc..."
-                                                                                    className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-                                                                                    rows={2}
-                                                                                />
-                                                                            </div>
-
-                                                                            {exercise.alternatives && exercise.alternatives.length > 0 && (
-                                                                                <div className="mt-3">
-                                                                                    <label className="text-gray-300 text-sm font-medium mb-2 block">Alternative Exercises:</label>
-                                                                                    <div className="flex flex-wrap gap-2">
-                                                                                        {exercise.alternatives.map((alt, index) => (
-                                                                                            <span
-                                                                                                key={index}
-                                                                                                className="px-2 py-1 bg-gray-600 text-gray-200 text-sm rounded flex items-center gap-1"
-                                                                                            >
-                                                                                                {alt}
+                                                                    {day.exercises.map((exercise, exerciseIndex) => {
+                                                                        const isReorderDropTarget = draggedWorkoutExercise
+                                                                            && draggedWorkoutExercise.weekNumber === week.weekNumber
+                                                                            && draggedWorkoutExercise.dayName === day.name
+                                                                            && draggedWorkoutExercise.workoutExerciseId !== exercise.id
+                                                                            && dropTargetReorder?.weekNumber === week.weekNumber
+                                                                            && dropTargetReorder?.dayName === day.name
+                                                                            && dropTargetReorder?.insertIndex === exerciseIndex;
+                                                                        return (
+                                                                            <div
+                                                                                key={exercise.id}
+                                                                                className="relative"
+                                                                            >
+                                                                                {isReorderDropTarget && (
+                                                                                    <div className="absolute -top-2 left-0 right-0 h-1 bg-cyan-500 rounded z-10 pointer-events-none" title="Drop to reorder" />
+                                                                                )}
+                                                                                <div
+                                                                                    className={`bg-gray-700 rounded-lg p-4 cursor-move ${isReorderDropTarget ? 'ring-2 ring-cyan-500 ring-inset' : ''}`}
+                                                                                    draggable
+                                                                                    onDragStart={() => handleWorkoutExerciseDragStart(week.weekNumber, day.name, exercise.exerciseId, exercise.id)}
+                                                                                    onDragEnd={() => { handleWorkoutExerciseDragEnd(); setDropTargetReorder(null); }}
+                                                                                    onDragOver={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
+                                                                                        if (draggedWorkoutExercise && draggedWorkoutExercise.weekNumber === week.weekNumber && draggedWorkoutExercise.dayName === day.name && draggedWorkoutExercise.workoutExerciseId !== exercise.id) {
+                                                                                            setDropTargetReorder({ weekNumber: week.weekNumber, dayName: day.name, insertIndex: exerciseIndex });
+                                                                                        }
+                                                                                    }}
+                                                                                    onDrop={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
+                                                                                        setDropTargetReorder(null);
+                                                                                        if (draggedWorkoutExercise && draggedWorkoutExercise.weekNumber === week.weekNumber && draggedWorkoutExercise.dayName === day.name && draggedWorkoutExercise.workoutExerciseId !== exercise.id) {
+                                                                                            reorderExerciseInDay(week.weekNumber, day.name, draggedWorkoutExercise.workoutExerciseId, exerciseIndex);
+                                                                                            handleWorkoutExerciseDragEnd();
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="flex items-center justify-between mb-3">
+                                                                                        <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <div className="flex items-center rounded border border-gray-600 overflow-hidden">
                                                                                                 <button
-                                                                                                    onClick={() => {
-                                                                                                        const currentAlternatives = exercise.alternatives || [];
-                                                                                                        const newAlternatives = currentAlternatives.filter((_, i) => i !== index);
-                                                                                                        updateExerciseAlternatives(week.weekNumber, day.name, exercise.exerciseId, newAlternatives);
-                                                                                                    }}
-                                                                                                    className="text-red-400 hover:text-red-300 text-xs ml-1"
+                                                                                                    type="button"
+                                                                                                    onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'up')}
+                                                                                                    disabled={exerciseIndex === 0}
+                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    title="Move up"
                                                                                                 >
-                                                                                                    ✕
+                                                                                                    <ChevronUpIcon size={18} />
                                                                                                 </button>
-                                                                                            </span>
-                                                                                        ))}
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'down')}
+                                                                                                    disabled={exerciseIndex === day.exercises.length - 1}
+                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    title="Move down"
+                                                                                                >
+                                                                                                    <ChevronDownIcon size={18} />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                            <ExerciseHistoryButton
+                                                                                                exerciseId={exercise.exerciseId}
+                                                                                                exerciseName={exercise.exerciseName}
+                                                                                                variant="icon"
+                                                                                            />
+                                                                                            <button
+                                                                                                onClick={() => openAlternativesModal(week.weekNumber, day.name, exercise.exerciseId)}
+                                                                                                className="text-cyan-400 hover:text-cyan-300 text-sm"
+                                                                                            >
+                                                                                                Alternatives
+                                                                                            </button>
+                                                                                            <div className="text-xs text-gray-400">
+                                                                                                Drag to remove
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
+
+                                                                                    <div className="mb-4">
+                                                                                        <div className="flex gap-2 flex-wrap items-end">
+                                                                                            {exercise.reps.map((rep, index) => {
+                                                                                                const repKey = `${exercise.id}-${index}`;
+                                                                                                const repDisplay = repKey in editingReps ? editingReps[repKey] : String(rep);
+                                                                                                return (
+                                                                                                    <div key={index} className="flex flex-col">
+                                                                                                        <span className="text-gray-400 text-sm mb-1">Set {index + 1}:</span>
+                                                                                                        <div className="flex items-center gap-1">
+                                                                                                            <input
+                                                                                                                type="text"
+                                                                                                                inputMode="numeric"
+                                                                                                                value={repDisplay}
+                                                                                                                onChange={(e) => setEditingReps(prev => ({ ...prev, [repKey]: e.target.value }))}
+                                                                                                                onBlur={() => {
+                                                                                                                    const raw = editingReps[repKey] ?? String(rep);
+                                                                                                                    const parsed = parseInt(raw, 10);
+                                                                                                                    const value = (!isNaN(parsed) && parsed >= 1) ? parsed : rep;
+                                                                                                                    updateExerciseRep(week.weekNumber, day.name, exercise.exerciseId, index, value);
+                                                                                                                    setEditingReps(prev => {
+                                                                                                                        const next = { ...prev };
+                                                                                                                        delete next[repKey];
+                                                                                                                        return next;
+                                                                                                                    });
+                                                                                                                }}
+                                                                                                                className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                                                                                placeholder={`Reps`}
+                                                                                                            />
+                                                                                                            {exercise.reps.length > 1 && (
+                                                                                                                <button
+                                                                                                                    type="button"
+                                                                                                                    onClick={() => {
+                                                                                                                        const newReps = exercise.reps.filter((_, i) => i !== index);
+                                                                                                                        updateExerciseLocal(week.weekNumber, day.name, exercise.exerciseId, {
+                                                                                                                            reps: newReps,
+                                                                                                                            sets: newReps.length
+                                                                                                                        });
+                                                                                                                        setEditingReps(prev => {
+                                                                                                                            const next = { ...prev };
+                                                                                                                            exercise.reps.forEach((_, i) => delete next[`${exercise.id}-${i}`]);
+                                                                                                                            return next;
+                                                                                                                        });
+                                                                                                                    }}
+                                                                                                                    className="text-gray-500 hover:text-red-400 transition text-lg leading-none px-1"
+                                                                                                                    title="Remove set"
+                                                                                                                >
+                                                                                                                    ×
+                                                                                                                </button>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateExerciseSets(week.weekNumber, day.name, exercise.exerciseId, exercise.sets + 1)}
+                                                                                                className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center shrink-0"
+                                                                                                title="Add set"
+                                                                                            >
+                                                                                                +
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    <div>
+                                                                                        <label className="text-gray-300 text-sm font-medium mb-2 block">Comment</label>
+                                                                                        <textarea
+                                                                                            value={exercise.comment || ""}
+                                                                                            onChange={(e) => updateExerciseComment(week.weekNumber, day.name, exercise.exerciseId, e.target.value)}
+                                                                                            placeholder="Add notes about form, progression, etc..."
+                                                                                            className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                                                                                            rows={2}
+                                                                                        />
+                                                                                    </div>
+
+                                                                                    {exercise.alternatives && exercise.alternatives.length > 0 && (
+                                                                                        <div className="mt-3">
+                                                                                            <label className="text-gray-300 text-sm font-medium mb-2 block">Alternative Exercises:</label>
+                                                                                            <div className="flex flex-wrap gap-2">
+                                                                                                {exercise.alternatives.map((alt, index) => (
+                                                                                                    <span
+                                                                                                        key={index}
+                                                                                                        className="px-2 py-1 bg-gray-600 text-gray-200 text-sm rounded flex items-center gap-1"
+                                                                                                    >
+                                                                                                        {alt}
+                                                                                                        <button
+                                                                                                            onClick={() => {
+                                                                                                                const currentAlternatives = exercise.alternatives || [];
+                                                                                                                const newAlternatives = currentAlternatives.filter((_, i) => i !== index);
+                                                                                                                updateExerciseAlternatives(week.weekNumber, day.name, exercise.exerciseId, newAlternatives);
+                                                                                                            }}
+                                                                                                            className="text-red-400 hover:text-red-300 text-xs ml-1"
+                                                                                                        >
+                                                                                                            ✕
+                                                                                                        </button>
+                                                                                                    </span>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -696,8 +753,8 @@ export default function WorkoutProgram() {
                                             </button>
                                             <button
                                                 onClick={async () => {
-                                                    await saveProgramChanges();
-                                                    navigate("/programs");
+                                                    const ok = await saveProgramChanges();
+                                                    if (ok) navigate("/programs");
                                                 }}
                                                 className="px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
                                             >
