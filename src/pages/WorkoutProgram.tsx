@@ -450,32 +450,15 @@ export default function WorkoutProgram() {
                                                                             </div>
 
                                                                             <div className="mb-4">
-                                                                                <div className="flex items-start gap-4 flex-wrap">
-                                                                                    <div className="w-20">
-                                                                                        <label className="text-gray-300 text-sm font-medium mb-2 block">Sets</label>
-                                                                                        <input
-                                                                                            type="number"
-                                                                                            min="1"
-                                                                                            value={exercise.sets}
-                                                                                            onChange={(e) => {
-                                                                                                const value = e.target.value;
-                                                                                                if (value === '' || parseInt(value) > 0) {
-                                                                                                    updateExerciseSets(week.weekNumber, day.name, exercise.exerciseId, parseInt(value) || 1);
-                                                                                                }
-                                                                                            }}
-                                                                                            onFocus={(e) => e.target.select()}
-                                                                                            className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="flex-1 min-w-0">
-                                                                                        <label className="text-gray-300 text-sm font-medium mb-2 block">Reps per Set</label>
-                                                                                        <div className="flex flex-wrap gap-2">
-                                                                                            {exercise.reps.map((rep, index) => {
-                                                                                                const repKey = `${exercise.id}-${index}`;
-                                                                                                const repDisplay = repKey in editingReps ? editingReps[repKey] : String(rep);
-                                                                                                return (
+                                                                                <div className="flex gap-2 flex-wrap items-end">
+                                                                                    {exercise.reps.map((rep, index) => {
+                                                                                        const repKey = `${exercise.id}-${index}`;
+                                                                                        const repDisplay = repKey in editingReps ? editingReps[repKey] : String(rep);
+                                                                                        return (
+                                                                                            <div key={index} className="flex flex-col">
+                                                                                                <span className="text-gray-400 text-sm mb-1">Set {index + 1}:</span>
+                                                                                                <div className="flex items-center gap-1">
                                                                                                     <input
-                                                                                                        key={index}
                                                                                                         type="text"
                                                                                                         inputMode="numeric"
                                                                                                         value={repDisplay}
@@ -491,13 +474,42 @@ export default function WorkoutProgram() {
                                                                                                                 return next;
                                                                                                             });
                                                                                                         }}
-                                                                                                        className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                                                                        placeholder={`Set ${index + 1}`}
+                                                                                                        className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                                                                        placeholder={`Reps`}
                                                                                                     />
-                                                                                                );
-                                                                                            })}
-                                                                                        </div>
-                                                                                    </div>
+                                                                                                    {exercise.reps.length > 1 && (
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={() => {
+                                                                                                                const newReps = exercise.reps.filter((_, i) => i !== index);
+                                                                                                                updateExerciseLocal(week.weekNumber, day.name, exercise.exerciseId, {
+                                                                                                                    reps: newReps,
+                                                                                                                    sets: newReps.length
+                                                                                                                });
+                                                                                                                setEditingReps(prev => {
+                                                                                                                    const next = { ...prev };
+                                                                                                                    exercise.reps.forEach((_, i) => delete next[`${exercise.id}-${i}`]);
+                                                                                                                    return next;
+                                                                                                                });
+                                                                                                            }}
+                                                                                                            className="text-gray-500 hover:text-red-400 transition text-lg leading-none px-1"
+                                                                                                            title="Remove set"
+                                                                                                        >
+                                                                                                            ×
+                                                                                                        </button>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => updateExerciseSets(week.weekNumber, day.name, exercise.exerciseId, exercise.sets + 1)}
+                                                                                        className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center shrink-0"
+                                                                                        title="Add set"
+                                                                                    >
+                                                                                        +
+                                                                                    </button>
                                                                                 </div>
                                                                             </div>
 
