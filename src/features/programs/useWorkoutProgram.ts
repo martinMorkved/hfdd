@@ -550,6 +550,110 @@ export const useWorkoutProgram = () => {
         }
     };
 
+    // Add a day to an existing week (for weekly: "Extra 1", "Extra 2"...; for rotating: "Day D", "Day E"...)
+    const addDayToWeek = async (weekNumber: number) => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        const structure = currentProgram.structure;
+        if (structure === "frequency" || structure === "block") return; // only weekly and rotating support add day
+
+        let newDayName: string;
+        if (structure === "rotating") {
+            const lastDay = week.days[week.days.length - 1];
+            const match = lastDay?.name.match(/^Day ([A-Z])$/);
+            if (match) {
+                const letter = match[1];
+                const nextChar = letter === "Z" ? "A2" : String.fromCharCode(letter.charCodeAt(0) + 1);
+                newDayName = `Day ${nextChar}`;
+            } else {
+                const nextLetter = String.fromCharCode(65 + (week.days.length % 26));
+                newDayName = `Day ${nextLetter}`;
+            }
+        } else {
+            const extraCount = week.days.filter(d => d.name.startsWith("Extra ")).length + 1;
+            newDayName = `Extra ${extraCount}`;
+        }
+
+        try {
+            const nextOrder = week.days.length + 1;
+            const { error: dayError } = await supabase
+                .from('workout_days')
+                .insert([{
+                    week_id: week.id,
+                    name: newDayName,
+                    day_number: nextOrder,
+                    day_order: nextOrder
+                }]);
+
+            if (dayError) {
+                console.error('Error adding day:', dayError);
+                return;
+            }
+
+            const updatedProgram = await loadCompleteProgram(currentProgram.id);
+            setCurrentProgram(updatedProgram);
+            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+        } catch (err) {
+            console.error('Error adding day:', err);
+        }
+    };
+
+    // Remove a week/cycle (for rotating: "Remove cycle"; for weekly: "Remove week")
+    const removeWeek = async (weekNumber: number) => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        try {
+            const { error } = await supabase
+                .from('workout_weeks')
+                .delete()
+                .eq('id', week.id);
+
+            if (error) {
+                console.error('Error removing week:', error);
+                return;
+            }
+
+            const updatedProgram = await loadCompleteProgram(currentProgram.id);
+            setCurrentProgram(updatedProgram);
+            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+        } catch (err) {
+            console.error('Error removing week:', err);
+        }
+    };
+
+    // Remove a day from a week (for rotating: remove Day A/B/C/etc.; for weekly: remove Extra N)
+    const removeDayFromWeek = async (weekNumber: number, dayId: string) => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        const day = week?.days.find(d => d.id === dayId);
+        if (!week || !day) return;
+
+        try {
+            const { error } = await supabase
+                .from('workout_days')
+                .delete()
+                .eq('id', dayId);
+
+            if (error) {
+                console.error('Error removing day:', error);
+                return;
+            }
+
+            const updatedProgram = await loadCompleteProgram(currentProgram.id);
+            setCurrentProgram(updatedProgram);
+            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+        } catch (err) {
+            console.error('Error removing day:', err);
+        }
+    };
+
     const selectProgram = (program: WorkoutProgram) => {
         setCurrentProgram(program);
     };
@@ -653,6 +757,9 @@ export const useWorkoutProgram = () => {
         saveProgramChanges,
         removeExerciseFromDay,
         addWeek,
+        addDayToWeek,
+        removeWeek,
+        removeDayFromWeek,
         selectProgram,
         activateProgram,
         deactivateProgram,

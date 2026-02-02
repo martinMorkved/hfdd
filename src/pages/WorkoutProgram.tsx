@@ -59,6 +59,9 @@ export default function WorkoutProgram() {
         saveProgramChanges,
         removeExerciseFromDay,
         addWeek,
+        addDayToWeek,
+        removeWeek,
+        removeDayFromWeek,
         selectProgram,
         setCurrentProgram,
         deleteProgram,
@@ -111,6 +114,9 @@ export default function WorkoutProgram() {
     const [editStructure, setEditStructure] = useState<ProgramStructure>("weekly");
     // Local string state for rep inputs so "select all, type 5" replaces instead of appending
     const [editingReps, setEditingReps] = useState<Record<string, string>>({});
+    // Remove cycle / remove day confirmation
+    const [removeCycleWeekNumber, setRemoveCycleWeekNumber] = useState<number | null>(null);
+    const [removeDayInfo, setRemoveDayInfo] = useState<{ weekNumber: number; dayId: string; dayName: string } | null>(null);
 
     // Sync editable fields when current program changes
     useEffect(() => {
@@ -194,6 +200,14 @@ export default function WorkoutProgram() {
             case "frequency": return "Add Week"; // This shouldn't be shown
             default: return "Add Week";
         }
+    };
+
+    const shouldShowAddDayButton = (structure: ProgramStructure) => {
+        return structure === "weekly" || structure === "rotating";
+    };
+
+    const getAddDayButtonText = (structure: ProgramStructure) => {
+        return structure === "rotating" ? "Add Day (D, E, F…)" : "Add Day";
     };
 
     return (
@@ -389,6 +403,16 @@ export default function WorkoutProgram() {
                                             <div key={week.weekNumber} className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <h3 className="text-xl font-bold text-cyan-400">{getWeekLabel(currentProgram.structure, week.weekNumber)}</h3>
+                                                    {/* Remove cycle (rotating only, when more than one cycle) */}
+                                                    {currentProgram.structure === "rotating" && currentProgram.weeks.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setRemoveCycleWeekNumber(week.weekNumber)}
+                                                            className="px-3 py-1.5 text-sm rounded-lg border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                        >
+                                                            Remove cycle
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 {/* Days */}
@@ -406,14 +430,29 @@ export default function WorkoutProgram() {
                                                         >
                                                             <div className="flex items-center justify-between mb-6">
                                                                 <h4 className="text-xl font-semibold text-white">{day.name}</h4>
-                                                                <div className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
-                                                                    ? 'text-cyan-300 font-medium'
-                                                                    : 'text-gray-400'
-                                                                    }`}>
-                                                                    {dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
-                                                                        ? 'Drop here!'
-                                                                        : 'Drop exercises here'
-                                                                    }
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Remove day (rotating: any day when >1; weekly: only Extra N) */}
+                                                                    {(
+                                                                        (currentProgram.structure === "rotating" && week.days.length > 1) ||
+                                                                        (currentProgram.structure === "weekly" && day.name.startsWith("Extra "))
+                                                                    ) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setRemoveDayInfo({ weekNumber: week.weekNumber, dayId: day.id, dayName: day.name })}
+                                                                                className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                                            >
+                                                                                Remove day
+                                                                            </button>
+                                                                        )}
+                                                                    <span className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
+                                                                        ? 'text-cyan-300 font-medium'
+                                                                        : 'text-gray-400'
+                                                                        }`}>
+                                                                        {dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
+                                                                            ? 'Drop here!'
+                                                                            : 'Drop exercises here'
+                                                                        }
+                                                                    </span>
                                                                 </div>
                                                             </div>
 
@@ -556,6 +595,19 @@ export default function WorkoutProgram() {
                                                         </div>
                                                     ))}
                                                 </div>
+
+                                                {/* Add Day button (weekly: extra days; rotating: Day D, E, F…) */}
+                                                {shouldShowAddDayButton(currentProgram.structure) && (
+                                                    <div className="flex justify-center pt-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => addDayToWeek(week.weekNumber)}
+                                                            className="px-4 py-2 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:bg-gray-700 hover:text-white transition font-medium"
+                                                        >
+                                                            {getAddDayButtonText(currentProgram.structure)}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
 
@@ -717,6 +769,38 @@ export default function WorkoutProgram() {
                         title="Delete Program"
                         message={`Are you sure you want to delete "${currentProgram?.name ?? 'this program'}"? This action cannot be undone.`}
                         confirmText="Delete"
+                        confirmButtonStyle="bg-red-600 hover:bg-red-700"
+                    />
+
+                    {/* Remove cycle confirmation (rotating) */}
+                    <ConfirmationModal
+                        isOpen={removeCycleWeekNumber !== null}
+                        onClose={() => setRemoveCycleWeekNumber(null)}
+                        onConfirm={() => {
+                            if (removeCycleWeekNumber !== null) {
+                                removeWeek(removeCycleWeekNumber);
+                                setRemoveCycleWeekNumber(null);
+                            }
+                        }}
+                        title="Remove cycle"
+                        message={`Remove this cycle? All days and exercises in it will be deleted. This cannot be undone.`}
+                        confirmText="Remove cycle"
+                        confirmButtonStyle="bg-red-600 hover:bg-red-700"
+                    />
+
+                    {/* Remove day confirmation */}
+                    <ConfirmationModal
+                        isOpen={removeDayInfo !== null}
+                        onClose={() => setRemoveDayInfo(null)}
+                        onConfirm={() => {
+                            if (removeDayInfo) {
+                                removeDayFromWeek(removeDayInfo.weekNumber, removeDayInfo.dayId);
+                                setRemoveDayInfo(null);
+                            }
+                        }}
+                        title="Remove day"
+                        message={removeDayInfo ? `Remove "${removeDayInfo.dayName}"? All exercises in this day will be deleted. This cannot be undone.` : ""}
+                        confirmText="Remove day"
                         confirmButtonStyle="bg-red-600 hover:bg-red-700"
                     />
                 </div>
