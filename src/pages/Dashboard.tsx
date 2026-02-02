@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
-import { Modal } from "../components/Modal";
+import { Modal } from "../components/ui/Modal";
+import { StatCard } from "../components/ui/StatCard";
 import {
     DumbbellIcon,
     CalendarIcon,
@@ -16,16 +17,6 @@ export default function Dashboard() {
     const { activeProgram, programs } = useWorkoutProgram();
     const [showLogModal, setShowLogModal] = useState(false);
     const navigate = useNavigate();
-
-    const getStructureLabel = (structure: string) => {
-        switch (structure) {
-            case "weekly": return "Weekly (7-day cycles)";
-            case "rotating": return "Rotating (A/B/C days)";
-            case "block": return "Block-based (Mesocycles)";
-            case "frequency": return "Frequency-based (Full body)";
-            default: return structure;
-        }
-    };
 
     const getTotalExercises = (program: any) => {
         return program.weeks.reduce((total: number, week: any) => {
@@ -222,26 +213,16 @@ export default function Dashboard() {
                     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                         <h3 className="text-xl font-bold text-white mb-4">Quick Stats</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-cyan-400">{programs.length}</div>
-                                <div className="text-gray-400 text-sm">Total Programs</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-cyan-400">
-                                    {activeProgram ? activeProgram.weeks.length : 0}
-                                </div>
-                                <div className="text-gray-400 text-sm">Active Weeks</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-cyan-400">
-                                    {activeProgram ? getTotalExercises(activeProgram) : 0}
-                                </div>
-                                <div className="text-gray-400 text-sm">Total Exercises</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-cyan-400">0</div>
-                                <div className="text-gray-400 text-sm">Workouts This Week</div>
-                            </div>
+                            <StatCard label="Total Programs" value={programs.length} />
+                            <StatCard
+                                label="Active Weeks"
+                                value={activeProgram ? activeProgram.weeks.length : 0}
+                            />
+                            <StatCard
+                                label="Total Exercises"
+                                value={activeProgram ? getTotalExercises(activeProgram) : 0}
+                            />
+                            <StatCard label="Workouts This Week" value={0} />
                         </div>
                     </div>
                 </div>

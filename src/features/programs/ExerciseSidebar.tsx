@@ -1,4 +1,7 @@
 import React from "react";
+import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { ExerciseHistoryButton } from "../exercises/ExerciseHistoryButton";
+
 // Exercise type from Supabase
 type Exercise = {
     id: string;
@@ -8,8 +11,6 @@ type Exercise = {
     created_at?: string;
     updated_at?: string;
 };
-import { MultiSelectFilter } from "../MultiSelectFilterProps";
-import { ExerciseHistoryButton } from "../ExerciseHistoryButton";
 
 interface ExerciseSidebarProps {
     showExerciseSidebar: boolean;
@@ -99,4 +100,4 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
             </div>
         </div>
     );
-}; 
+};

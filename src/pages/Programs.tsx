@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { Link } from "react-router-dom";
-import { ConfirmationModal } from "../components/Modal";
-import { ProgramCard } from "../components/ProgramCard";
+import { ConfirmationModal } from "../components/ui/Modal";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
+import { ProgramCard } from "../features/programs";
 
 export default function Programs() {
     const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();
@@ -20,26 +23,24 @@ export default function Programs() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-cyan-400 text-xl">Loading programs...</div>
-            </div>
-        );
+        return <LoadingScreen message="Loading programs..." />;
     }
 
     return (
         <div className="min-h-screen bg-gray-900">
             <div className="p-4 sm:p-8">
                 <div className="max-w-[1100px] mx-auto">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white">My Programs</h1>
-                        <Link
-                            to="/program"
-                            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center"
-                        >
-                            Create New Program
-                        </Link>
-                    </div>
+                    <PageHeader
+                        title="My Programs"
+                        actions={
+                            <Link
+                                to="/program"
+                                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center inline-block"
+                            >
+                                Create New Program
+                            </Link>
+                        }
+                    />
 
                     {/* Active Program Display */}
                     {activeProgram && (
@@ -78,16 +79,18 @@ export default function Programs() {
                     )}
 
                     {programs.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-gray-400 text-lg mb-4">No programs created yet</div>
-                            <p className="text-gray-500 mb-6">Start by creating your first workout program</p>
-                            <Link
-                                to="/program"
-                                className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
-                            >
-                                Create Your First Program
-                            </Link>
-                        </div>
+                        <EmptyState
+                            title="No programs created yet"
+                            description="Start by creating your first workout program"
+                            action={
+                                <Link
+                                    to="/program"
+                                    className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold inline-block"
+                                >
+                                    Create Your First Program
+                                </Link>
+                            }
+                        />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                             {programs.map((program) => (

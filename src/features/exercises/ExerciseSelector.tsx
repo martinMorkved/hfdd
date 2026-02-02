@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { MultiSelectFilter } from "./MultiSelectFilterProps";
-import { supabase } from "../lib/supabase";
+import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorMessage } from "../../components/ui/ErrorMessage";
+import { supabase } from "../../lib/supabase";
 
 type Exercise = {
     id: string;
@@ -89,12 +91,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
                 </button>
             </div>
 
-            {/* Error Message */}
-            {error && (
-                <div className="mb-6 p-4 bg-red-900/20 border border-red-500 rounded-lg">
-                    <p className="text-red-400">{error}</p>
-                </div>
-            )}
+            {error && <ErrorMessage message={error} className="mb-6" />}
 
             {/* Search Bar */}
             <div className="mb-6">
@@ -126,18 +123,12 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
                 </div>
             )}
 
-            {/* No Exercises Message */}
             {!loading && exercises.length === 0 && (
-                <div className="text-center py-8">
-                    <div className="text-gray-400 text-lg">No exercises found. Add exercises in the Exercise Library first!</div>
-                </div>
+                <EmptyState title="No exercises found. Add exercises in the Exercise Library first!" />
             )}
 
-            {/* No Results Message */}
             {!loading && exercises.length > 0 && filteredExercises.length === 0 && (
-                <div className="text-center py-8">
-                    <div className="text-gray-400 text-lg">No exercises match your search criteria.</div>
-                </div>
+                <EmptyState title="No exercises match your search criteria." />
             )}
 
             {/* Exercise List */}

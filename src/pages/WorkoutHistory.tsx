@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Modal } from '../components/Modal';
-import { ExerciseHistoryButton } from '../components/ExerciseHistoryButton';
+import { Modal } from '../components/ui/Modal';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ExerciseHistoryButton } from '../features/exercises';
 import { EditIcon } from '../components/icons';
 
 interface WorkoutSession {
@@ -409,11 +412,7 @@ export default function WorkoutHistory() {
 
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-white text-xl">Loading workout history...</div>
-            </div>
-        );
+        return <LoadingScreen message="Loading workout history..." />;
     }
 
     const sessionsByDate = getSessionsByDate();
@@ -422,15 +421,10 @@ export default function WorkoutHistory() {
         <div className="min-h-screen bg-gray-900">
             <div className="p-8">
                 <div className="max-w-6xl mx-auto">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-white mb-2">
-                            Workout History
-                        </h1>
-                        <p className="text-gray-400">
-                            View your past workout sessions and exercises
-                        </p>
-                    </div>
+                    <PageHeader
+                        title="Workout History"
+                        subtitle="View your past workout sessions and exercises"
+                    />
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Sessions List */}
@@ -441,14 +435,10 @@ export default function WorkoutHistory() {
                                 </h2>
 
                                 {sessions.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <div className="text-gray-400 text-lg mb-2">
-                                            No workout sessions yet
-                                        </div>
-                                        <p className="text-gray-500 text-sm">
-                                            Start logging workouts to see them here
-                                        </p>
-                                    </div>
+                                    <EmptyState
+                                        title="No workout sessions yet"
+                                        description="Start logging workouts to see them here"
+                                    />
                                 ) : (
                                     <div className="space-y-6">
                                         {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
@@ -553,11 +543,7 @@ export default function WorkoutHistory() {
                                             <div className="text-cyan-400 text-lg">Loading exercises...</div>
                                         </div>
                                     ) : sessionLogs.length === 0 ? (
-                                        <div className="text-center py-8">
-                                            <div className="text-gray-400 text-lg">
-                                                No exercises logged for this session
-                                            </div>
-                                        </div>
+                                        <EmptyState title="No exercises logged for this session" />
                                     ) : (
                                         <div className="space-y-4">
                                             <h3 className="text-lg font-semibold text-white mb-4">

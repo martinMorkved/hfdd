@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { MultiSelectFilter } from "./MultiSelectFilterProps";
-import { supabase } from "../lib/supabase";
+import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorMessage } from "../../components/ui/ErrorMessage";
+import { supabase } from "../../lib/supabase";
 import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
-
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 // Updated Exercise type to match database schema
 type Exercise = {
@@ -135,12 +136,7 @@ export const ExerciseLibrary: React.FC = () => {
                     <h2 className="text-3xl font-bold text-white">Exercise Library</h2>
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-900/20 border border-red-500 rounded-lg">
-                        <p className="text-red-400">{error}</p>
-                    </div>
-                )}
+                {error && <ErrorMessage message={error} className="mb-6" />}
 
                 <form onSubmit={handleAddExercise} className="flex flex-row gap-4 mb-8 items-center">
                     <input
@@ -181,11 +177,8 @@ export const ExerciseLibrary: React.FC = () => {
                     </div>
                 )}
 
-                {/* No Exercises Message */}
                 {!loading && exercises.length === 0 && (
-                    <div className="text-center py-8">
-                        <div className="text-gray-400 text-lg">No exercises found. Add your first exercise above!</div>
-                    </div>
+                    <EmptyState title="No exercises found. Add your first exercise above!" />
                 )}
 
                 {/* Exercise List */}
@@ -234,4 +227,4 @@ export const ExerciseLibrary: React.FC = () => {
             {/* The ExerciseHistoryButton component manages its own modal state */}
         </div>
     );
-}; 
+};

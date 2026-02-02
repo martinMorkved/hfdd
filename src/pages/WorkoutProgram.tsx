@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { MultiSelectFilter } from "../components/MultiSelectFilterProps";
+import { Modal, ConfirmationModal } from "../components/ui/Modal";
+import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { supabase } from "../lib/supabase";
 import { TrashIcon } from "../components/icons";
+import { ExerciseSidebar } from "../features/programs";
 
 // Exercise type from Supabase
 type Exercise = {
@@ -16,9 +18,7 @@ type Exercise = {
 import { useWorkoutProgram, type ProgramStructure } from "../hooks/useWorkoutProgram";
 import { useExerciseManagement } from "../hooks/useExerciseManagement";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { ExerciseSidebar } from "../components/WorkoutProgram/ExerciseSidebar";
-import { Modal, ConfirmationModal } from "../components/Modal";
-import { ExerciseHistoryButton } from "../components/ExerciseHistoryButton";
+import { ExerciseHistoryButton } from "../features/exercises";
 
 export default function WorkoutProgram() {
     const location = useLocation();

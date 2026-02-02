@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { ExerciseLibrary } from "./components/ExerciseLibrary";
-import { Navigation } from "./components/Navigation";
-import { Login } from "./components/Auth/Login";
-import { ResetPassword } from "./components/Auth/ResetPassword";
+import { Navigation } from "./components/ui/Navigation";
+import { LoadingScreen } from "./components/ui/LoadingScreen";
+import { Login, ResetPassword } from "./features/auth";
+import { ExerciseLibrary } from "./features/exercises";
 import WorkoutProgram from "./pages/WorkoutProgram";
 import Programs from "./pages/Programs";
 import Dashboard from "./pages/Dashboard";
@@ -25,11 +25,7 @@ function App() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-cyan-400 text-xl">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading..." />;
   }
 
   // Show password reset form if in recovery mode (even if logged in)
