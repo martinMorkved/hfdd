@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { InfoIcon } from "../../components/icons";
 import { getStructureLabel, getTotalExercises } from "./utils";
 
 interface Program {
@@ -23,34 +25,53 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
     onActivate,
     onDelete,
 }) => {
+    const [showDescription, setShowDescription] = useState(false);
+    const hasDescription = Boolean(program.description?.trim());
+
     return (
-        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 hover:border-cyan-500 transition-colors flex flex-col h-full">
             <div className="mb-4">
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{program.name}</h3>
-                {program.description && (
-                    <p className="text-gray-300 text-sm mb-3">{program.description}</p>
-                )}
-                <span className="inline-block px-2 py-1 bg-cyan-600 text-white text-xs rounded-full">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-white">{program.name}</h3>
+                    {hasDescription && (
+                        <button
+                            type="button"
+                            onClick={() => setShowDescription((prev) => !prev)}
+                            className="shrink-0 p-1 rounded text-gray-400 hover:text-cyan-400 hover:bg-gray-700 transition"
+                            title={showDescription ? "Hide description" : "Show description"}
+                            aria-label={showDescription ? "Hide description" : "Show description"}
+                        >
+                            <InfoIcon size={18} className={showDescription ? "text-cyan-400" : ""} />
+                        </button>
+                    )}
+                </div>
+                <span className="inline-block px-2 py-1 bg-cyan-600 text-white text-xs rounded-full mb-2">
                     {getStructureLabel(program.structure)}
                 </span>
             </div>
 
-            <div className="space-y-2 mb-4 sm:mb-6">
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Weeks:</span>
-                    <span className="text-white font-medium">{program.weeks.length}</span>
+            {showDescription && hasDescription ? (
+                <div className="flex-1 min-h-[5.5rem] mb-4 sm:mb-6">
+                    <p className="text-gray-300 text-sm">{program.description}</p>
                 </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Total Exercises:</span>
-                    <span className="text-white font-medium">{getTotalExercises(program)}</span>
+            ) : (
+                <div className="space-y-2 mb-4 sm:mb-6 flex-1">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Weeks:</span>
+                        <span className="text-white font-medium">{program.weeks.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Total Exercises:</span>
+                        <span className="text-white font-medium">{getTotalExercises(program)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Days per Week:</span>
+                        <span className="text-white font-medium">
+                            {program.weeks[0]?.days.length || 0}
+                        </span>
+                    </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Days per Week:</span>
-                    <span className="text-white font-medium">
-                        {program.weeks[0]?.days.length || 0}
-                    </span>
-                </div>
-            </div>
+            )}
 
             <div className="flex flex-wrap gap-2">
                 <Link
