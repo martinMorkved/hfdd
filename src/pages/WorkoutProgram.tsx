@@ -570,11 +570,14 @@ export default function WorkoutProgram() {
                         onClose={() => setShowDeleteModal(false)}
                         onConfirm={() => {
                             if (currentProgram) {
-                                deleteProgram(currentProgram.id);
+                                const programId = currentProgram.id;
+                                const programName = currentProgram.name;
+                                setShowDeleteModal(false);
+                                deleteProgram(programId);
                             }
                         }}
                         title="Delete Program"
-                        message={`Are you sure you want to delete "${currentProgram?.name}"? This action cannot be undone.`}
+                        message={`Are you sure you want to delete "${currentProgram?.name ?? 'this program'}"? This action cannot be undone.`}
                         confirmText="Delete"
                         confirmButtonStyle="bg-red-600 hover:bg-red-700"
                     />
