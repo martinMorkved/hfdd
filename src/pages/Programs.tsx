@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { Link } from "react-router-dom";
 import { ConfirmationModal } from "../components/Modal";
+import { ProgramCard } from "../components/ProgramCard";
 
 export default function Programs() {
     const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();
@@ -9,16 +10,6 @@ export default function Programs() {
     const [programToDelete, setProgramToDelete] = useState<{ id: string; name: string } | null>(null);
     const [showReplaceModal, setShowReplaceModal] = useState(false);
     const [programToActivate, setProgramToActivate] = useState<{ id: string; name: string } | null>(null);
-
-    const getStructureLabel = (structure: string) => {
-        switch (structure) {
-            case "weekly": return "Weekly (7-day cycles)";
-            case "rotating": return "Rotating (A/B/C days)";
-            case "block": return "Block-based (Mesocycles)";
-            case "frequency": return "Frequency-based (Full body)";
-            default: return structure;
-        }
-    };
 
     const getTotalExercises = (program: any) => {
         return program.weeks.reduce((total: number, week: any) => {
@@ -38,13 +29,13 @@ export default function Programs() {
 
     return (
         <div className="min-h-screen bg-gray-900">
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
                 <div className="max-w-[1100px] mx-auto">
-                    <div className="flex items-center justify-between mb-8">
-                        <h1 className="text-3xl font-bold text-white">My Programs</h1>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white">My Programs</h1>
                         <Link
                             to="/program"
-                            className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
+                            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center"
                         >
                             Create New Program
                         </Link>
@@ -52,33 +43,37 @@ export default function Programs() {
 
                     {/* Active Program Display */}
                     {activeProgram && (
-                        <div className="mb-8 p-6 bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <span className="px-3 py-1 bg-cyan-500 text-white text-sm font-semibold rounded-full">
-                                            ACTIVE PROGRAM
-                                        </span>
-                                        <h2 className="text-2xl font-bold text-white">{activeProgram.name}</h2>
-                                    </div>
-                                    {activeProgram.description && (
-                                        <p className="text-cyan-200 text-sm">{activeProgram.description}</p>
-                                    )}
-                                    <div className="flex items-center gap-4 mt-3 text-sm text-cyan-200">
-                                        <span>{activeProgram.weeks.length} weeks</span>
-                                        <span>•</span>
-                                        <span>{activeProgram.weeks[0]?.days.length || 0} days per week</span>
-                                        <span>•</span>
-                                        <span>{getTotalExercises(activeProgram)} total exercises</span>
-                                    </div>
+                        <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500">
+                            <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full mb-3">
+                                ACTIVE PROGRAM
+                            </span>
+                            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{activeProgram.name}</h2>
+
+                            {activeProgram.description && (
+                                <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
+                            )}
+
+                            <div className="grid grid-cols-3 gap-3 mb-4 text-sm text-cyan-200">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-cyan-400">•</span>
+                                    <span>{activeProgram.weeks.length} weeks</span>
                                 </div>
-                                <button
-                                    onClick={() => deactivateProgram()}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
-                                >
-                                    Deactivate
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-cyan-400">•</span>
+                                    <span>{activeProgram.weeks[0]?.days.length || 0} days/week</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-cyan-400">•</span>
+                                    <span>{getTotalExercises(activeProgram)} exercises</span>
+                                </div>
                             </div>
+
+                            <button
+                                onClick={() => deactivateProgram()}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                            >
+                                Deactivate
+                            </button>
                         </div>
                     )}
 
@@ -94,82 +89,25 @@ export default function Programs() {
                             </Link>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                             {programs.map((program) => (
-                                <div
+                                <ProgramCard
                                     key={program.id}
-                                    className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors"
-                                >
-                                    <div className="mb-4">
-                                        <h3 className="text-xl font-bold text-white mb-2">{program.name}</h3>
-                                        {program.description && (
-                                            <p className="text-gray-300 text-sm mb-3">{program.description}</p>
-                                        )}
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="px-2 py-1 bg-cyan-600 text-white text-xs rounded-full">
-                                                {getStructureLabel(program.structure)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2 mb-6">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Weeks:</span>
-                                            <span className="text-white font-medium">{program.weeks.length}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Total Exercises:</span>
-                                            <span className="text-white font-medium">{getTotalExercises(program)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-400">Days per Week:</span>
-                                            <span className="text-white font-medium">
-                                                {program.weeks[0]?.days.length || 0}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <Link
-                                            to={`/program`}
-                                            state={{ selectedProgramId: program.id }}
-                                            className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-center text-sm font-medium"
-                                        >
-                                            Edit Program
-                                        </Link>
-                                        {activeProgram?.id === program.id ? (
-                                            <button
-                                                disabled
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium cursor-not-allowed"
-                                            >
-                                                Active
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => {
-                                                    if (activeProgram) {
-                                                        setProgramToActivate({ id: program.id, name: program.name });
-                                                        setShowReplaceModal(true);
-                                                    } else {
-                                                        activateProgram(program.id);
-                                                    }
-                                                }}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-                                            >
-                                                Activate
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                setProgramToDelete({ id: program.id, name: program.name });
-                                                setShowDeleteModal(true);
-                                            }}
-                                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
+                                    program={program}
+                                    isActive={activeProgram?.id === program.id}
+                                    onActivate={(id, name) => {
+                                        if (activeProgram) {
+                                            setProgramToActivate({ id, name });
+                                            setShowReplaceModal(true);
+                                        } else {
+                                            activateProgram(id);
+                                        }
+                                    }}
+                                    onDelete={(id, name) => {
+                                        setProgramToDelete({ id, name });
+                                        setShowDeleteModal(true);
+                                    }}
+                                />
                             ))}
                         </div>
                     )}

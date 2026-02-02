@@ -3,12 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useWorkoutProgram } from "../hooks/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
 import { Modal } from "../components/Modal";
-import { 
-    DumbbellIcon, 
-    CalendarIcon, 
-    ChartIcon, 
-    ClipboardIcon, 
-    EditIcon 
+import {
+    DumbbellIcon,
+    CalendarIcon,
+    ChartIcon,
+    ClipboardIcon,
+    EditIcon
 } from "../components/icons";
 
 export default function Dashboard() {
@@ -53,95 +53,86 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-gray-900">
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
                 <div className="max-w-6xl mx-auto">
                     {/* Welcome Header */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2 flex items-center gap-3">
                             Welcome back, {user?.email?.split('@')[0]}!
-                            <DumbbellIcon size={36} className="text-cyan-400" />
+                            <DumbbellIcon size={36} className="text-cyan-400 hidden sm:block" />
                         </h1>
-                        <p className="text-gray-400 text-lg">
+                        <p className="text-gray-400 text-sm sm:text-lg">
                             Ready to crush your workout today?
                         </p>
                     </div>
 
                     {/* Log Workout Section - Always Available */}
-                    <div className="mb-8">
-                        <div className="bg-gradient-to-r from-green-900 to-emerald-900 rounded-lg border border-green-500 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 bg-green-500 text-white text-sm font-semibold rounded-full">
-                                        LOG WORKOUT
-                                    </span>
-                                    <h2 className="text-2xl font-bold text-white">Log Your Workout</h2>
-                                </div>
-                            </div>
-
-                            <p className="text-green-200 text-sm mb-6">
+                    <div className="mb-6 sm:mb-8">
+                        <div className="bg-gradient-to-r from-green-900 to-emerald-900 rounded-lg border border-green-500 p-4 sm:p-6">
+                            <span className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-3">
+                                LOG WORKOUT
+                            </span>
+                            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Log Your Workout</h2>
+                            <p className="text-green-200 text-sm mb-4 sm:mb-6">
                                 Track your workout session and build your fitness journey!
                             </p>
-
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={handleLogWorkout}
-                                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
-                                >
-                                    <ClipboardIcon size={20} />
-                                    Log Workout
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleLogWorkout}
+                                className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-2"
+                            >
+                                <ClipboardIcon size={18} />
+                                Log Workout
+                            </button>
                         </div>
                     </div>
 
                     {/* Active Program Section */}
                     {activeProgram ? (
-                        <div className="mb-8">
-                            <div className="bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500 p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="px-3 py-1 bg-cyan-500 text-white text-sm font-semibold rounded-full">
-                                            ACTIVE PROGRAM
-                                        </span>
-                                        <h2 className="text-2xl font-bold text-white">{activeProgram.name}</h2>
-                                    </div>
-                                    <Link
-                                        to="/programs"
-                                        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition text-sm"
-                                    >
-                                        Manage Programs
-                                    </Link>
-                                </div>
+                        <div className="mb-6 sm:mb-8">
+                            <div className="bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500 p-4 sm:p-6">
+                                <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full mb-3">
+                                    ACTIVE PROGRAM
+                                </span>
+                                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{activeProgram.name}</h2>
 
                                 {activeProgram.description && (
                                     <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
                                 )}
 
-                                <div className="flex items-center gap-6 mb-6 text-sm text-cyan-200">
-                                    <span>{activeProgram.weeks.length} weeks</span>
-                                    <span>•</span>
-                                    <span>{activeProgram.weeks[0]?.days.length || 0} days per week</span>
-                                    <span>•</span>
-                                    <span>{getTotalExercises(activeProgram)} total exercises</span>
-                                    <span>•</span>
-                                    <span>{getStructureLabel(activeProgram.structure)}</span>
+                                <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6 text-sm text-cyan-200">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-cyan-400">•</span>
+                                        <span>{activeProgram.weeks.length} weeks</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-cyan-400">•</span>
+                                        <span>{activeProgram.weeks[0]?.days.length || 0} days/week</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-cyan-400">•</span>
+                                        <span>{getTotalExercises(activeProgram)} exercises</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-cyan-400">•</span>
+                                        <span className="truncate">{activeProgram.structure === 'rotating' ? 'Rotating' : activeProgram.structure}</span>
+                                    </div>
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <Link
                                         to="/program"
                                         state={{ selectedProgramId: activeProgram.id }}
-                                        className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
+                                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium flex items-center justify-center gap-2"
                                     >
-                                        <EditIcon size={20} />
+                                        <EditIcon size={18} />
                                         Edit Program
                                     </Link>
                                     <Link
                                         to="/programs"
-                                        className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-2"
+                                        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium flex items-center justify-center gap-2"
                                     >
-                                        <ClipboardIcon size={20} />
-                                        View All Programs
+                                        <ClipboardIcon size={18} />
+                                        Manage Programs
                                     </Link>
                                 </div>
                             </div>
