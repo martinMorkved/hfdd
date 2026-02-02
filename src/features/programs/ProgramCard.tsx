@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
+import { Button } from "../../components/ui/Button";
+import { getStructureLabel, getTotalExercises } from "./utils";
 
 interface Program {
     id: string;
     name: string;
     description?: string;
     structure: string;
-    weeks: { days: { exercises: any[] }[] }[];
+    weeks: { days: { exercises: unknown[] }[] }[];
 }
 
 interface ProgramCardProps {
@@ -14,24 +16,6 @@ interface ProgramCardProps {
     onActivate: (id: string, name: string) => void;
     onDelete: (id: string, name: string) => void;
 }
-
-const getStructureLabel = (structure: string) => {
-    switch (structure) {
-        case "weekly": return "Weekly (7-day cycles)";
-        case "rotating": return "Rotating (A/B/C days)";
-        case "block": return "Block-based (Mesocycles)";
-        case "frequency": return "Frequency-based (Full body)";
-        default: return structure;
-    }
-};
-
-const getTotalExercises = (program: Program) => {
-    return program.weeks.reduce((total, week) => {
-        return total + week.days.reduce((dayTotal, day) => {
-            return dayTotal + day.exercises.length;
-        }, 0);
-    }, 0);
-};
 
 export const ProgramCard: React.FC<ProgramCardProps> = ({
     program,
@@ -77,26 +61,23 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
                     Edit Program
                 </Link>
                 {isActive ? (
-                    <button
-                        disabled
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium cursor-not-allowed"
-                    >
+                    <Button variant="success" disabled>
                         Active
-                    </button>
+                    </Button>
                 ) : (
-                    <button
+                    <Button
+                        variant="success"
                         onClick={() => onActivate(program.id, program.name)}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
                     >
                         Activate
-                    </button>
+                    </Button>
                 )}
-                <button
+                <Button
+                    variant="danger"
                     onClick={() => onDelete(program.id, program.name)}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
                 >
                     Delete
-                </button>
+                </Button>
             </div>
         </div>
     );

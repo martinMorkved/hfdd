@@ -5,19 +5,11 @@ import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { supabase } from "../lib/supabase";
 import { TrashIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
-
-// Exercise type from Supabase
-type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscle_group?: string;
-    created_at?: string;
-    updated_at?: string;
-};
-import { useWorkoutProgram, type ProgramStructure } from "../hooks/useWorkoutProgram";
-import { useExerciseManagement } from "../hooks/useExerciseManagement";
-import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import type { Exercise } from "../features/exercises/types";
+import { useWorkoutProgram, type ProgramStructure } from "../features/programs/useWorkoutProgram";
+import { useExerciseManagement } from "../features/programs/useExerciseManagement";
+import { useDragAndDrop } from "../features/programs/useDragAndDrop";
+import { getStructureLabel } from "../features/programs/utils";
 import { ExerciseHistoryButton } from "../features/exercises";
 
 export default function WorkoutProgram() {
@@ -151,16 +143,6 @@ export default function WorkoutProgram() {
         if (!currentProgram) return;
         addWeek(weekNumber); // Use the database function with copy parameter
         setShowWeekCopyPrompt(false);
-    };
-
-    const getStructureLabel = (structure: ProgramStructure) => {
-        switch (structure) {
-            case "weekly": return "Weekly (7-day cycles)";
-            case "rotating": return "Rotating (A/B/C days)";
-            case "block": return "Block-based (Mesocycles)";
-            case "frequency": return "Frequency-based (Full body)";
-            default: return structure;
-        }
     };
 
     const getWeekLabel = (structure: ProgramStructure, weekNumber: number) => {

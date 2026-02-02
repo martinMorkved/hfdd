@@ -3,15 +3,7 @@ import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { supabase } from "../../lib/supabase";
-
-type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscle_group?: string;
-    created_at?: string;
-    updated_at?: string;
-};
+import type { Exercise } from "./types";
 
 interface ExerciseSelectorProps {
     onExerciseSelect: (exercise: Exercise) => void;
@@ -25,9 +17,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Load exercises from Supabase on component mount
     useEffect(() => {
-        console.log('ExerciseSelector: Loading exercises...');
         loadExercises();
     }, []);
 

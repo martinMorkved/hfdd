@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../hooks/useWorkoutLogging';
-import { useWorkoutProgram } from '../hooks/useWorkoutProgram';
+import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
+import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
 import { Modal } from '../components/ui/Modal';
 import { NumberInput } from '../components/ui/NumberInput';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { PageHeader } from '../components/ui/PageHeader';
+import { PageLayout } from '../components/ui/PageLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { ExerciseSelector, ExerciseHistoryButton } from '../features/exercises';
 import { PlusIcon } from '../components/icons';
@@ -245,10 +246,8 @@ export default function WorkoutLogger() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="p-8">
-                <div className="max-w-4xl mx-auto">
-                    <PageHeader
+        <PageLayout maxWidth="max-w-4xl">
+            <PageHeader
                         title={location.state?.editSession ? 'Edit Workout' : 'Log Your Workout'}
                         subtitle={
                             currentSession ? (
@@ -693,8 +692,6 @@ export default function WorkoutLogger() {
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
-        </div>
+        </PageLayout>
     );
 }

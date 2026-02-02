@@ -1,13 +1,5 @@
 import { useState } from "react";
-// Exercise type from Supabase
-type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscle_group?: string;
-    created_at?: string;
-    updated_at?: string;
-};
+import type { Exercise } from "../exercises/types";
 
 export const useDragAndDrop = (
     addExerciseToDay: (exercise: Exercise, weekNumber: number, dayName: string) => void,

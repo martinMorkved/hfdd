@@ -5,16 +5,7 @@ import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { supabase } from "../../lib/supabase";
 import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 import { useAuth } from "../../contexts/AuthContext";
-
-// Updated Exercise type to match database schema
-type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscle_group?: string;
-    created_at?: string;
-    updated_at?: string;
-};
+import type { Exercise } from "./types";
 
 export const ExerciseLibrary: React.FC = () => {
     const { user } = useAuth();

@@ -1,16 +1,7 @@
 import React from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
 import { ExerciseHistoryButton } from "../exercises/ExerciseHistoryButton";
-
-// Exercise type from Supabase
-type Exercise = {
-    id: string;
-    name: string;
-    description?: string;
-    muscle_group?: string;
-    created_at?: string;
-    updated_at?: string;
-};
+import type { Exercise } from "../exercises/types";
 
 interface ExerciseSidebarProps {
     showExerciseSidebar: boolean;
