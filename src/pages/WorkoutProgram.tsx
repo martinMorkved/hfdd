@@ -99,7 +99,14 @@ export default function WorkoutProgram() {
     const [showWeekCopyPrompt, setShowWeekCopyPrompt] = useState(false);
     const [showAlternativesModal, setShowAlternativesModal] = useState(false);
     const [selectedExerciseForAlternatives, setSelectedExerciseForAlternatives] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
-    const [showExerciseSidebar, setShowExerciseSidebar] = useState(true);
+    const [showExerciseSidebar, setShowExerciseSidebar] = useState(false);
+
+    // Show exercise library when a program is selected or created
+    useEffect(() => {
+        if (currentProgram) {
+            setShowExerciseSidebar(true);
+        }
+    }, [currentProgram]);
 
     // Get unique muscle groups
     const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
