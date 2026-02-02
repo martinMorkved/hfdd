@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { supabase } from "../lib/supabase";
-import { TrashIcon } from "../components/icons";
+import { TrashIcon, EditIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
 import type { Exercise } from "../features/exercises/types";
 import { useWorkoutProgram, type ProgramStructure } from "../features/programs/useWorkoutProgram";
 import { useExerciseManagement } from "../features/programs/useExerciseManagement";
 import { useDragAndDrop } from "../features/programs/useDragAndDrop";
-import { getStructureLabel } from "../features/programs/utils";
 import { ExerciseHistoryButton } from "../features/exercises";
 
 export default function WorkoutProgram() {
     const location = useLocation();
+    const navigate = useNavigate();
     const selectedProgramId = location.state?.selectedProgramId;
 
     // Exercise state
@@ -59,7 +59,9 @@ export default function WorkoutProgram() {
         removeExerciseFromDay,
         addWeek,
         selectProgram,
-        deleteProgram
+        setCurrentProgram,
+        deleteProgram,
+        updateProgramInArray
     } = useWorkoutProgram();
 
     // Auto-select program if coming from Programs page
@@ -100,6 +102,20 @@ export default function WorkoutProgram() {
     const [showAlternativesModal, setShowAlternativesModal] = useState(false);
     const [selectedExerciseForAlternatives, setSelectedExerciseForAlternatives] = useState<{ weekNumber: number, dayName: string, exerciseId: string } | null>(null);
     const [showExerciseSidebar, setShowExerciseSidebar] = useState(false);
+    const [showNameError, setShowNameError] = useState(false);
+    // Editable program details (synced from currentProgram, saved on blur)
+    const [editName, setEditName] = useState("");
+    const [editDescription, setEditDescription] = useState("");
+    const [editStructure, setEditStructure] = useState<ProgramStructure>("weekly");
+
+    // Sync editable fields when current program changes
+    useEffect(() => {
+        if (currentProgram) {
+            setEditName(currentProgram.name);
+            setEditDescription(currentProgram.description ?? "");
+            setEditStructure(currentProgram.structure);
+        }
+    }, [currentProgram?.id, currentProgram?.name, currentProgram?.description, currentProgram?.structure]);
 
     // Show exercise library when a program is selected or created
     useEffect(() => {
@@ -198,7 +214,9 @@ export default function WorkoutProgram() {
                     <div className="p-8">
                         <div className="max-w-[1100px] mx-auto">
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold text-white">Create Program</h2>
+                                <h2 className="text-3xl font-bold text-white">
+                                    {currentProgram ? "Edit Program" : "Create Program"}
+                                </h2>
                                 <button
                                     onClick={() => setShowExerciseSidebar(!showExerciseSidebar)}
                                     className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
@@ -207,48 +225,72 @@ export default function WorkoutProgram() {
                                 </button>
                             </div>
 
-                            {/* Program Selection/Creation */}
+                            {/* Program Selection/Creation - only when no program selected */}
                             <div className="mb-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Program name"
-                                        value={programName}
-                                        onChange={(e) => setProgramName(e.target.value)}
-                                        className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Description"
-                                        value={programDescription}
-                                        onChange={(e) => setProgramDescription(e.target.value)}
-                                        className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
-                                    />
-                                    <select
-                                        value={programStructure}
-                                        onChange={(e) => setProgramStructure(e.target.value as ProgramStructure)}
-                                        className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                    >
-                                        <option value="weekly">Weekly (7-day cycles)</option>
-                                        <option value="rotating">Rotating (A/B/C days)</option>
-                                        <option value="block">Block-based (Mesocycles)</option>
-                                        <option value="frequency">Single Template (Full body)</option>
-                                    </select>
-                                </div>
-                                <div className="flex justify-center">
-                                    <button
-                                        onClick={createNewProgram}
-                                        className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold text-lg"
-                                    >
-                                        Create Program
-                                    </button>
-                                </div>
+                                {!currentProgram && (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Program name"
+                                                value={programName}
+                                                onChange={(e) => {
+                                                    setProgramName(e.target.value);
+                                                    setShowNameError(false);
+                                                }}
+                                                className={`rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 placeholder-gray-400 border ${showNameError ? "border-red-500 focus:ring-red-500" : "border-gray-400 focus:ring-cyan-500"}`}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Description"
+                                                value={programDescription}
+                                                onChange={(e) => setProgramDescription(e.target.value)}
+                                                className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                                            />
+                                            <select
+                                                value={programStructure}
+                                                onChange={(e) => setProgramStructure(e.target.value as ProgramStructure)}
+                                                className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            >
+                                                <option value="weekly">Weekly (7-day cycles)</option>
+                                                <option value="rotating">Rotating (A/B/C days)</option>
+                                                <option value="block">Block-based (Mesocycles)</option>
+                                                <option value="frequency">Single Template (Full body)</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex justify-center mb-6">
+                                            <button
+                                                onClick={() => {
+                                                    if (!programName.trim()) {
+                                                        setShowNameError(true);
+                                                    } else {
+                                                        setShowNameError(false);
+                                                        createNewProgram();
+                                                    }
+                                                }}
+                                                className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold text-lg"
+                                            >
+                                                Create Program
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
 
-                                {/* Program List */}
+                                {/* Program list: switch program or create new */}
                                 {programs.length > 0 && (
                                     <div className="mb-4">
-                                        <h3 className="text-lg font-semibold text-white mb-2">Select Program:</h3>
-                                        <div className="flex gap-2 flex-wrap">
+                                        <h3 className="text-lg font-semibold text-white mb-2">
+                                            {currentProgram ? "Switch program:" : "Select Program:"}
+                                        </h3>
+                                        <div className="flex gap-2 flex-wrap items-center">
+                                            {currentProgram && (
+                                                <button
+                                                    onClick={() => setCurrentProgram(null)}
+                                                    className="px-4 py-2 rounded-lg border border-dashed border-cyan-500 text-cyan-400 hover:bg-cyan-900/30 transition"
+                                                >
+                                                    + New program
+                                                </button>
+                                            )}
                                             {programs.map(program => (
                                                 <button
                                                     key={program.id}
@@ -269,20 +311,64 @@ export default function WorkoutProgram() {
                             {/* Current Program Display */}
                             {currentProgram && (
                                 <div className="space-y-6">
-                                    <div className="text-center">
-                                        <div className="flex items-center justify-center gap-4 mb-4">
-                                            <h3 className="text-2xl font-bold text-white">{currentProgram.name}</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                                            <div className="relative max-w-md min-w-0 flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    onBlur={() => {
+                                                        const trimmed = editName.trim();
+                                                        if (trimmed && trimmed !== currentProgram.name) {
+                                                            updateProgramInArray({ ...currentProgram, name: trimmed });
+                                                        } else if (!trimmed) setEditName(currentProgram.name);
+                                                    }}
+                                                    className="text-2xl font-bold text-white bg-gray-800 border border-gray-600 rounded-lg pl-4 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 placeholder-gray-400"
+                                                    placeholder="Program name"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                    <EditIcon size={18} className="text-gray-400" />
+                                                </span>
+                                            </div>
                                             <button
                                                 onClick={() => setShowDeleteModal(true)}
-                                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                                                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium shrink-0"
                                             >
                                                 Delete Program
                                             </button>
                                         </div>
-                                        {currentProgram.description && (
-                                            <p className="text-gray-300 mb-2">{currentProgram.description}</p>
-                                        )}
-                                        <p className="text-cyan-400 text-sm font-medium">{getStructureLabel(currentProgram.structure)}</p>
+                                        <div className="relative max-w-md">
+                                            <input
+                                                type="text"
+                                                value={editDescription}
+                                                onChange={(e) => setEditDescription(e.target.value)}
+                                                onBlur={() => {
+                                                    if (editDescription !== (currentProgram.description ?? "")) {
+                                                        updateProgramInArray({ ...currentProgram, description: editDescription || undefined });
+                                                    }
+                                                }}
+                                                className="text-gray-300 bg-gray-800 border border-gray-600 rounded-lg pl-4 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 placeholder-gray-400"
+                                                placeholder="Description (optional)"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <EditIcon size={18} className="text-gray-400" />
+                                            </span>
+                                        </div>
+                                        <select
+                                            value={editStructure}
+                                            onChange={(e) => {
+                                                const value = e.target.value as ProgramStructure;
+                                                setEditStructure(value);
+                                                updateProgramInArray({ ...currentProgram, structure: value });
+                                            }}
+                                            className="text-cyan-400 text-sm font-medium bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                        >
+                                            <option value="weekly">Weekly (7-day cycles)</option>
+                                            <option value="rotating">Rotating (A/B/C days)</option>
+                                            <option value="block">Block-based (Mesocycles)</option>
+                                            <option value="frequency">Single Template (Full body)</option>
+                                        </select>
                                     </div>
 
                                     {/* Weeks */}
@@ -444,6 +530,16 @@ export default function WorkoutProgram() {
                                                 </button>
                                             </div>
                                         )}
+
+                                        {/* Finish Button */}
+                                        <div className="flex justify-center pt-6">
+                                            <button
+                                                onClick={() => navigate("/programs")}
+                                                className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
+                                            >
+                                                Finish
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -571,7 +667,6 @@ export default function WorkoutProgram() {
                         onConfirm={() => {
                             if (currentProgram) {
                                 const programId = currentProgram.id;
-                                const programName = currentProgram.name;
                                 setShowDeleteModal(false);
                                 deleteProgram(programId);
                             }

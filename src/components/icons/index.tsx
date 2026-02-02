@@ -341,6 +341,29 @@ export const XIcon: React.FC<IconProps> = ({
     </svg>
 );
 
+// Info (circle with i) - for description / more info
+export const InfoIcon: React.FC<IconProps> = ({
+    size = defaultProps.size,
+    className = '',
+    strokeWidth = defaultProps.strokeWidth
+}) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+    >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+    </svg>
+);
+
 // Edit/Pencil
 export const EditIcon: React.FC<IconProps> = ({ 
     size = defaultProps.size, 

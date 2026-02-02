@@ -293,6 +293,9 @@ export const useWorkoutProgram = () => {
 
             // Update local state
             setPrograms(prev => prev.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+            if (currentProgram?.id === updatedProgram.id) {
+                setCurrentProgram(updatedProgram);
+            }
         } catch (err) {
             console.error('Error updating program:', err);
         }
