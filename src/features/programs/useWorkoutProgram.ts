@@ -41,6 +41,9 @@ export type WorkoutProgram = {
     weeks: WorkoutWeek[];
 };
 
+const isTempId = (id: string) => id.startsWith("temp-");
+const nextTempId = () => `temp-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export const useWorkoutProgram = () => {
     const { user } = useAuth();
     const [programs, setPrograms] = useState<WorkoutProgram[]>([]);
@@ -274,76 +277,51 @@ export const useWorkoutProgram = () => {
         }
     };
 
-    const updateProgramInArray = async (updatedProgram: WorkoutProgram) => {
-        try {
-            // Update the program in database
-            const { error: programError } = await supabase
-                .from('workout_programs')
-                .update({
-                    name: updatedProgram.name,
-                    description: updatedProgram.description,
-                    structure: updatedProgram.structure
-                })
-                .eq('id', updatedProgram.id);
-
-            if (programError) {
-                console.error('Error updating program:', programError);
-                return;
-            }
-
-            // Update local state
-            setPrograms(prev => prev.map(p => p.id === updatedProgram.id ? updatedProgram : p));
-            if (currentProgram?.id === updatedProgram.id) {
-                setCurrentProgram(updatedProgram);
-            }
-        } catch (err) {
-            console.error('Error updating program:', err);
+    // Update program (name, description, structure) locally only. Persisted when user clicks Save or Save and Finish.
+    const updateProgramInArray = (updatedProgram: WorkoutProgram) => {
+        setPrograms(prev => prev.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+        if (currentProgram?.id === updatedProgram.id) {
+            setCurrentProgram(updatedProgram);
         }
     };
 
-    // Add exercise to a specific day
-    const addExerciseToDay = async (exercise: Exercise, weekNumber: number, dayName: string) => {
+    // Add exercise to a specific day (local only). Persisted when user clicks Save or Save and Finish.
+    const addExerciseToDay = (exercise: Exercise, weekNumber: number, dayName: string) => {
         if (!currentProgram) return;
 
-        try {
-            // Find the week and day
-            const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
-            if (!week) return;
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
 
-            const day = week.days.find(d => d.name === dayName);
-            if (!day) return;
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
 
-            // Get the next exercise order
-            const nextOrder = day.exercises.length + 1;
+        const newWorkoutExercise: WorkoutExercise = {
+            id: nextTempId(),
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            sets: 3,
+            reps: [10, 10, 10],
+            comment: undefined,
+            alternatives: []
+        };
 
-            // Insert exercise into database
-            const { error: exerciseError } = await supabase
-                .from('workout_exercises')
-                .insert([{
-                    day_id: day.id,
-                    exercise_id: exercise.id,
-                    exercise_name: exercise.name,
-                    sets: 3,
-                    reps: [10, 10, 10],
-                    exercise_order: nextOrder
-                }])
-                .select()
-                .single();
-
-            if (exerciseError) {
-                console.error('Error adding exercise:', exerciseError);
-                return;
-            }
-
-            // Reload the current program
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-
-            // Update programs array
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error adding exercise:', err);
-        }
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName
+                                ? { ...d, exercises: [...d.exercises, newWorkoutExercise] }
+                                : d
+                        )
+                    }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
     // Update exercise details locally only (no DB). Call saveProgramChanges() to persist.
@@ -375,39 +353,144 @@ export const useWorkoutProgram = () => {
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
-    // Persist all exercise details (sets, reps, comment, alternatives) for the current program to the database.
-    // Returns true if all updates succeeded, false otherwise.
+    // Persist full program state to DB (program, weeks, days, exercises). Only runs when user clicks Save or Save and Finish.
     const saveProgramChanges = async (): Promise<boolean> => {
         if (!currentProgram) return false;
 
         try {
-            for (const week of currentProgram.weeks) {
-                for (const day of week.days) {
-                    for (const exercise of day.exercises) {
-                        const payload: Record<string, unknown> = {
-                            sets: exercise.sets,
-                            reps: Array.isArray(exercise.reps) ? exercise.reps : [],
-                            comment: exercise.comment ?? null,
-                            alternatives: exercise.alternatives ?? []
-                        };
-                        const { data, error } = await supabase
-                            .from('workout_exercises')
-                            .update(payload)
-                            .eq('id', exercise.id)
-                            .select('id')
-                            .maybeSingle();
+            // 1. Update program row (name, description, structure)
+            const { error: programError } = await supabase
+                .from('workout_programs')
+                .update({
+                    name: currentProgram.name,
+                    description: currentProgram.description ?? null,
+                    structure: currentProgram.structure
+                })
+                .eq('id', currentProgram.id);
+            if (programError) {
+                console.error('Error saving program', programError);
+                return false;
+            }
 
-                        if (error) {
-                            console.error('Error saving exercise', exercise.id, error);
+            const realWeekIds = currentProgram.weeks.filter(w => !isTempId(w.id)).map(w => w.id);
+
+            // 2. Insert new weeks (temp id -> real id)
+            const tempToRealWeek: Record<string, string> = {};
+            for (const week of currentProgram.weeks) {
+                if (isTempId(week.id)) {
+                    const { data: inserted, error } = await supabase
+                        .from('workout_weeks')
+                        .insert([{ program_id: currentProgram.id, week_number: week.weekNumber }])
+                        .select('id')
+                        .single();
+                    if (error || !inserted) {
+                        console.error('Error inserting week', error);
+                        return false;
+                    }
+                    tempToRealWeek[week.id] = inserted.id;
+                }
+            }
+
+            // 3. Delete weeks that were removed (in DB but not in current state)
+            const keepWeekIds = [...realWeekIds, ...Object.values(tempToRealWeek)];
+            const { data: existingWeeks } = await supabase
+                .from('workout_weeks')
+                .select('id')
+                .eq('program_id', currentProgram.id);
+            const weeksToDelete = (existingWeeks || []).filter((r: { id: string }) => !keepWeekIds.includes(r.id));
+            for (const row of weeksToDelete) {
+                await supabase.from('workout_weeks').delete().eq('id', (row as { id: string }).id);
+            }
+
+            // 4. For each week: sync days (insert new, update names, delete removed)
+            const tempToRealDay: Record<string, string> = {};
+            for (const week of currentProgram.weeks) {
+                const realWeekId = tempToRealWeek[week.id] ?? week.id;
+
+                for (const day of week.days) {
+                    if (isTempId(day.id)) {
+                        const { data: inserted, error } = await supabase
+                            .from('workout_days')
+                            .insert([{ week_id: realWeekId, name: day.name, day_number: week.days.indexOf(day) + 1, day_order: week.days.indexOf(day) + 1 }])
+                            .select('id')
+                            .single();
+                        if (error || !inserted) {
+                            console.error('Error inserting day', error);
                             return false;
                         }
-                        if (!data) {
-                            console.error('No row updated for exercise', exercise.id, '- check RLS or id');
+                        tempToRealDay[day.id] = inserted.id;
+                    } else {
+                        const { error } = await supabase.from('workout_days').update({ name: day.name }).eq('id', day.id);
+                        if (error) {
+                            console.error('Error updating day name', day.id, error);
                             return false;
                         }
                     }
                 }
+
+                const realDayIds = week.days.filter(d => !isTempId(d.id)).map(d => d.id);
+                const newDayIds = week.days.filter(d => isTempId(d.id)).map(d => tempToRealDay[d.id]);
+                const keepIds = [...realDayIds, ...newDayIds];
+                const { data: existingDays } = await supabase.from('workout_days').select('id').eq('week_id', realWeekId);
+                const daysToDelete = (existingDays || []).filter((r: { id: string }) => !keepIds.includes(r.id));
+                for (const row of daysToDelete) {
+                    await supabase.from('workout_days').delete().eq('id', (row as { id: string }).id);
+                }
             }
+
+            // 5. For each day: sync exercises (insert new, update existing, delete removed)
+            for (const week of currentProgram.weeks) {
+                for (const day of week.days) {
+                    const realDayId = tempToRealDay[day.id] ?? day.id;
+
+                    for (let i = 0; i < day.exercises.length; i++) {
+                        const ex = day.exercises[i];
+                        if (isTempId(ex.id)) {
+                            const { error } = await supabase.from('workout_exercises').insert([{
+                                day_id: realDayId,
+                                exercise_id: ex.exerciseId,
+                                exercise_name: ex.exerciseName,
+                                sets: ex.sets,
+                                reps: ex.reps,
+                                comment: ex.comment ?? null,
+                                alternatives: ex.alternatives ?? [],
+                                exercise_order: i + 1
+                            }]);
+                            if (error) {
+                                console.error('Error inserting exercise', error);
+                                return false;
+                            }
+                        } else {
+                            const { error } = await supabase
+                                .from('workout_exercises')
+                                .update({
+                                    sets: ex.sets,
+                                    reps: ex.reps,
+                                    comment: ex.comment ?? null,
+                                    alternatives: ex.alternatives ?? [],
+                                    exercise_order: i + 1
+                                })
+                                .eq('id', ex.id);
+                            if (error) {
+                                console.error('Error updating exercise', ex.id, error);
+                                return false;
+                            }
+                        }
+                    }
+
+                    const realExIds = day.exercises.filter(e => !isTempId(e.id)).map(e => e.id);
+                    const { data: existingEx } = await supabase.from('workout_exercises').select('id').eq('day_id', realDayId);
+                    const exToDelete = (existingEx || []).filter((r: { id: string }) => !realExIds.includes(r.id));
+                    for (const row of exToDelete) {
+                        await supabase.from('workout_exercises').delete().eq('id', (row as { id: string }).id);
+                    }
+                }
+            }
+
+            // 6. Reload program so all temp ids are replaced with real ids
+            const updatedProgram = await loadCompleteProgram(currentProgram.id);
+            setCurrentProgram(updatedProgram);
+            setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
             return true;
         } catch (err) {
             console.error('Error saving program changes:', err);
@@ -415,150 +498,97 @@ export const useWorkoutProgram = () => {
         }
     };
 
-    // Remove exercise from day
-    const removeExerciseFromDay = async (weekNumber: number, dayName: string, exerciseId: string) => {
+    // Remove exercise from day (local only). Persisted when user clicks Save or Save and Finish.
+    const removeExerciseFromDay = (weekNumber: number, dayName: string, exerciseId: string) => {
         if (!currentProgram) return;
 
-        try {
-            // Find the exercise in the current program
-            const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
-            if (!week) return;
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
 
-            const day = week.days.find(d => d.name === dayName);
-            if (!day) return;
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
 
-            const exercise = day.exercises.find(e => e.exerciseId === exerciseId);
-            if (!exercise) return;
-
-            // Delete from database
-            const { error } = await supabase
-                .from('workout_exercises')
-                .delete()
-                .eq('id', exercise.id);
-
-            if (error) {
-                console.error('Error removing exercise:', error);
-                return;
-            }
-
-            // Reload the current program
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-
-            // Update programs array
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error removing exercise:', err);
-        }
-    };
-
-    // Add a new week
-    const addWeek = async (copyFromWeekNumber?: number) => {
-        if (!currentProgram) return;
-
-        try {
-            const newWeekNumber = currentProgram.weeks.length + 1;
-
-            // Create new week in database
-            const { data: weekData, error: weekError } = await supabase
-                .from('workout_weeks')
-                .insert([{
-                    program_id: currentProgram.id,
-                    week_number: newWeekNumber
-                }])
-                .select()
-                .single();
-
-            if (weekError) {
-                console.error('Error creating week:', weekError);
-                return;
-            }
-
-            // Create days based on structure
-            let dayNames: string[] = [];
-            if (currentProgram.structure === "weekly") {
-                dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            } else if (currentProgram.structure === "rotating") {
-                dayNames = ["Day A", "Day B", "Day C"];
-            } else if (currentProgram.structure === "block") {
-                dayNames = ["Block 1", "Block 2", "Block 3", "Block 4"];
-            } else if (currentProgram.structure === "frequency") {
-                dayNames = ["Full Body Session"];
-            }
-
-            const daysToInsert = dayNames.map((name, index) => ({
-                week_id: weekData.id,
-                name,
-                day_number: index + 1,
-                day_order: index + 1
-            }));
-
-            const { error: daysError } = await supabase
-                .from('workout_days')
-                .insert(daysToInsert);
-
-            if (daysError) {
-                console.error('Error creating days:', daysError);
-                return;
-            }
-
-            // If copying from another week, copy exercises
-            if (copyFromWeekNumber) {
-                const weekToCopy = currentProgram.weeks.find(w => w.weekNumber === copyFromWeekNumber);
-                if (weekToCopy) {
-                    for (const day of weekToCopy.days) {
-                        const newDay = dayNames.find(d => d === day.name);
-                        if (newDay) {
-                            // Find the new day in database
-                            const { data: newDayData } = await supabase
-                                .from('workout_days')
-                                .select('*')
-                                .eq('week_id', weekData.id)
-                                .eq('name', newDay)
-                                .single();
-
-                            if (newDayData) {
-                                // Copy exercises
-                                for (const exercise of day.exercises) {
-                                    await supabase
-                                        .from('workout_exercises')
-                                        .insert([{
-                                            day_id: newDayData.id,
-                                            exercise_id: exercise.exerciseId,
-                                            exercise_name: exercise.exerciseName,
-                                            sets: exercise.sets,
-                                            reps: exercise.reps,
-                                            comment: exercise.comment,
-                                            alternatives: exercise.alternatives,
-                                            exercise_order: exercise.reps.length + 1
-                                        }]);
-                                }
-                            }
-                        }
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName
+                                ? { ...d, exercises: d.exercises.filter(e => e.exerciseId !== exerciseId) }
+                                : d
+                        )
                     }
-                }
-            }
-
-            // Reload the current program
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-
-            // Update programs array
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error adding week:', err);
-        }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
-    // Add a day to an existing week (for weekly: "Extra 1", "Extra 2"...; for rotating: "Day D", "Day E"...)
-    const addDayToWeek = async (weekNumber: number) => {
+    // Add a new week (local only). Persisted when user clicks Save or Save and Finish.
+    const addWeek = (copyFromWeekNumber?: number) => {
+        if (!currentProgram) return;
+
+        const newWeekNumber = currentProgram.weeks.length + 1;
+
+        let dayNames: string[] = [];
+        if (currentProgram.structure === "weekly") {
+            dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        } else if (currentProgram.structure === "rotating") {
+            dayNames = ["Day A", "Day B", "Day C"];
+        } else if (currentProgram.structure === "block") {
+            dayNames = ["Block 1", "Block 2", "Block 3", "Block 4"];
+        } else if (currentProgram.structure === "frequency") {
+            dayNames = ["Full Body Session"];
+        }
+
+        const weekToCopy = copyFromWeekNumber ? currentProgram.weeks.find(w => w.weekNumber === copyFromWeekNumber) : null;
+
+        const newDays: WorkoutDay[] = dayNames.map((name) => {
+            const dayCopy = weekToCopy?.days.find(d => d.name === name);
+            const exercises: WorkoutExercise[] = dayCopy
+                ? dayCopy.exercises.map(ex => ({
+                    id: nextTempId(),
+                    exerciseId: ex.exerciseId,
+                    exerciseName: ex.exerciseName,
+                    sets: ex.sets,
+                    reps: [...ex.reps],
+                    comment: ex.comment,
+                    alternatives: ex.alternatives ? [...ex.alternatives] : []
+                }))
+                : [];
+            return {
+                id: nextTempId(),
+                name,
+                exercises
+            };
+        });
+
+        const newWeek: WorkoutWeek = {
+            id: nextTempId(),
+            weekNumber: newWeekNumber,
+            days: newDays
+        };
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: [...currentProgram.weeks, newWeek]
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+    };
+
+    // Add a day to an existing week (local only). Persisted when user clicks Save or Save and Finish.
+    const addDayToWeek = (weekNumber: number) => {
         if (!currentProgram) return;
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
         if (!week) return;
 
         const structure = currentProgram.structure;
-        if (structure === "frequency" || structure === "block") return; // only weekly and rotating support add day
+        if (structure === "frequency" || structure === "block") return;
 
         let newDayName: string;
         if (structure === "rotating") {
@@ -573,85 +603,75 @@ export const useWorkoutProgram = () => {
                 newDayName = `Day ${nextLetter}`;
             }
         } else {
-            const extraCount = week.days.filter(d => d.name.startsWith("Extra ")).length + 1;
-            newDayName = `Extra ${extraCount}`;
+            const extraIndex = week.days.length - 6;
+            newDayName = `Extra ${extraIndex > 0 ? extraIndex : 1}`;
         }
 
-        try {
-            const nextOrder = week.days.length + 1;
-            const { error: dayError } = await supabase
-                .from('workout_days')
-                .insert([{
-                    week_id: week.id,
-                    name: newDayName,
-                    day_number: nextOrder,
-                    day_order: nextOrder
-                }]);
-
-            if (dayError) {
-                console.error('Error adding day:', dayError);
-                return;
-            }
-
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error adding day:', err);
-        }
+        const newDay: WorkoutDay = { id: nextTempId(), name: newDayName, exercises: [] };
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? { ...w, days: [...w.days, newDay] }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
 
-    // Remove a week/cycle (for rotating: "Remove cycle"; for weekly: "Remove week")
-    const removeWeek = async (weekNumber: number) => {
+    // Remove a week/cycle (local only). Persisted when user clicks Save or Save and Finish.
+    const removeWeek = (weekNumber: number) => {
+        if (!currentProgram) return;
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.filter(w => w.weekNumber !== weekNumber)
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
+    };
+
+    // Remove a day from a week (local only). Persisted when user clicks Save or Save and Finish.
+    const removeDayFromWeek = (weekNumber: number, dayId: string) => {
         if (!currentProgram) return;
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
         if (!week) return;
 
-        try {
-            const { error } = await supabase
-                .from('workout_weeks')
-                .delete()
-                .eq('id', week.id);
-
-            if (error) {
-                console.error('Error removing week:', error);
-                return;
-            }
-
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error removing week:', err);
-        }
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? { ...w, days: w.days.filter(d => d.id !== dayId) }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
 
-    // Remove a day from a week (for rotating: remove Day A/B/C/etc.; for weekly: remove Extra N)
-    const removeDayFromWeek = async (weekNumber: number, dayId: string) => {
+    // Rename a day locally (e.g. "Day A" → "Monday"). Persisted to DB when user clicks Save or Finish.
+    const updateDayName = (weekNumber: number, dayId: string, newName: string) => {
         if (!currentProgram) return;
+
+        const trimmed = newName.trim();
+        if (!trimmed) return;
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
         const day = week?.days.find(d => d.id === dayId);
-        if (!week || !day) return;
+        if (!week || !day || day.name === trimmed) return;
 
-        try {
-            const { error } = await supabase
-                .from('workout_days')
-                .delete()
-                .eq('id', dayId);
-
-            if (error) {
-                console.error('Error removing day:', error);
-                return;
-            }
-
-            const updatedProgram = await loadCompleteProgram(currentProgram.id);
-            setCurrentProgram(updatedProgram);
-            setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
-        } catch (err) {
-            console.error('Error removing day:', err);
-        }
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? { ...w, days: w.days.map(d => (d.id === dayId ? { ...d, name: trimmed } : d)) }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
 
     const selectProgram = (program: WorkoutProgram) => {
@@ -760,6 +780,7 @@ export const useWorkoutProgram = () => {
         addDayToWeek,
         removeWeek,
         removeDayFromWeek,
+        updateDayName,
         selectProgram,
         activateProgram,
         deactivateProgram,

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { supabase } from "../lib/supabase";
-import { TrashIcon, EditIcon } from "../components/icons";
+import { TrashIcon, EditIcon, CheckIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
 import type { Exercise } from "../features/exercises/types";
 import { useWorkoutProgram, type ProgramStructure } from "../features/programs/useWorkoutProgram";
@@ -62,6 +62,7 @@ export default function WorkoutProgram() {
         addDayToWeek,
         removeWeek,
         removeDayFromWeek,
+        updateDayName,
         selectProgram,
         setCurrentProgram,
         deleteProgram,
@@ -117,6 +118,11 @@ export default function WorkoutProgram() {
     // Remove cycle / remove day confirmation
     const [removeCycleWeekNumber, setRemoveCycleWeekNumber] = useState<number | null>(null);
     const [removeDayInfo, setRemoveDayInfo] = useState<{ weekNumber: number; dayId: string; dayName: string } | null>(null);
+    // Inline edit day name (dayId when editing, draft value)
+    const [editingDayId, setEditingDayId] = useState<string | null>(null);
+    const [editingDayName, setEditingDayName] = useState("");
+    // Save button success feedback (green "Saved" + checkmark, then reset)
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Sync editable fields when current program changes
     useEffect(() => {
@@ -351,10 +357,20 @@ export default function WorkoutProgram() {
                                             </div>
                                             <div className="flex gap-2 shrink-0">
                                                 <button
-                                                    onClick={() => saveProgramChanges()}
-                                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium"
+                                                    onClick={async () => {
+                                                        const ok = await saveProgramChanges();
+                                                        if (ok) {
+                                                            setSaveSuccess(true);
+                                                            setTimeout(() => setSaveSuccess(false), 2500);
+                                                        }
+                                                    }}
+                                                    className={`px-4 py-2 rounded-lg transition text-sm font-medium flex items-center gap-2 ${saveSuccess
+                                                        ? "bg-green-600 text-white border border-green-500"
+                                                        : "bg-cyan-600 text-white hover:bg-cyan-700 border border-transparent"
+                                                        }`}
                                                 >
-                                                    Save
+                                                    {saveSuccess ? "Saved" : "Save"}
+                                                    {saveSuccess && <CheckIcon size={18} className="shrink-0" />}
                                                 </button>
                                                 <button
                                                     onClick={() => setShowDeleteModal(true)}
@@ -429,7 +445,44 @@ export default function WorkoutProgram() {
                                                             onDrop={() => handleDrop(week.weekNumber, day.name)}
                                                         >
                                                             <div className="flex items-center justify-between mb-6">
-                                                                <h4 className="text-xl font-semibold text-white">{day.name}</h4>
+                                                                {editingDayId === day.id ? (
+                                                                    <div className="relative flex-1 max-w-xs">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={editingDayName}
+                                                                            onChange={(e) => setEditingDayName(e.target.value)}
+                                                                            onBlur={() => {
+                                                                                const trimmed = editingDayName.trim();
+                                                                                if (trimmed && trimmed !== day.name) {
+                                                                                    updateDayName(week.weekNumber, day.id, trimmed);
+                                                                                }
+                                                                                setEditingDayId(null);
+                                                                            }}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") {
+                                                                                    e.currentTarget.blur();
+                                                                                }
+                                                                            }}
+                                                                            autoFocus
+                                                                            className="text-xl font-semibold text-white bg-gray-700 border border-gray-600 rounded-lg pl-3 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                                        />
+                                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                                            <EditIcon size={18} className="text-gray-400" />
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setEditingDayId(day.id);
+                                                                            setEditingDayName(day.name);
+                                                                        }}
+                                                                        className="flex items-center gap-2 text-left group"
+                                                                    >
+                                                                        <h4 className="text-xl font-semibold text-white">{day.name}</h4>
+                                                                        <EditIcon size={18} className="text-gray-400 opacity-70 group-hover:opacity-100 transition" />
+                                                                    </button>
+                                                                )}
                                                                 <div className="flex items-center gap-3">
                                                                     {/* Remove day (rotating: any day when >1; weekly: only Extra N) */}
                                                                     {(
@@ -623,16 +676,32 @@ export default function WorkoutProgram() {
                                             </div>
                                         )}
 
-                                        {/* Finish Button */}
-                                        <div className="flex justify-center pt-6">
+                                        {/* Save and Save and Finish buttons */}
+                                        <div className="flex justify-center gap-4 pt-6">
+                                            <button
+                                                onClick={async () => {
+                                                    const ok = await saveProgramChanges();
+                                                    if (ok) {
+                                                        setSaveSuccess(true);
+                                                        setTimeout(() => setSaveSuccess(false), 2500);
+                                                    }
+                                                }}
+                                                className={`px-6 py-3 rounded-lg transition font-semibold flex items-center gap-2 ${saveSuccess
+                                                    ? "bg-green-600 text-white border border-green-500"
+                                                    : "bg-cyan-600 text-white hover:bg-cyan-700 border border-cyan-500"
+                                                    }`}
+                                            >
+                                                {saveSuccess ? "Saved" : "Save"}
+                                                {saveSuccess && <CheckIcon size={20} className="shrink-0" />}
+                                            </button>
                                             <button
                                                 onClick={async () => {
                                                     await saveProgramChanges();
                                                     navigate("/programs");
                                                 }}
-                                                className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
+                                                className="px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
                                             >
-                                                Finish
+                                                Save and Finish
                                             </button>
                                         </div>
                                     </div>

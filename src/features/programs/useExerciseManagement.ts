@@ -4,9 +4,9 @@ import type { WorkoutProgram, WorkoutExercise } from "./useWorkoutProgram";
 
 export const useExerciseManagement = (
     currentProgram: WorkoutProgram | null,
-    addExerciseToDay: (exercise: Exercise, weekNumber: number, dayName: string) => Promise<void>,
+    addExerciseToDay: (exercise: Exercise, weekNumber: number, dayName: string) => void,
     updateExerciseLocal: (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => void,
-    removeExerciseFromDay: (weekNumber: number, dayName: string, exerciseId: string) => Promise<void>
+    removeExerciseFromDay: (weekNumber: number, dayName: string, exerciseId: string) => void
 ) => {
     const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
