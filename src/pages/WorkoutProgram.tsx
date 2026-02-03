@@ -6,6 +6,7 @@ import { Checkbox } from "../components/ui/Checkbox";
 import { TextInput } from "../components/ui/TextInput";
 import { TextArea } from "../components/ui/TextArea";
 import { RepInput } from "../components/ui/RepInput";
+import { Select } from "../components/ui/Select";
 import { supabase } from "../lib/supabase";
 import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
@@ -306,16 +307,16 @@ export default function WorkoutProgram() {
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProgramDescription(e.target.value)}
                                                 className="rounded-lg px-4 py-2"
                                             />
-                                            <select
+                                            <Select
                                                 value={programStructure}
                                                 onChange={(e) => setProgramStructure(e.target.value as ProgramStructure)}
-                                                className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                variant="default"
                                             >
                                                 <option value="weekly">Weekly (7-day cycles)</option>
                                                 <option value="rotating">Rotating (A/B/C days)</option>
                                                 <option value="block">Block-based (Mesocycles)</option>
                                                 <option value="frequency">Single Template (Full body)</option>
-                                            </select>
+                                            </Select>
                                         </div>
                                         <div className="flex justify-center mb-6">
                                             <button
@@ -430,20 +431,20 @@ export default function WorkoutProgram() {
                                                 <EditIcon size={18} className="text-gray-400" />
                                             </span>
                                         </div>
-                                        <select
+                                        <Select
                                             value={editStructure}
                                             onChange={(e) => {
                                                 const value = e.target.value as ProgramStructure;
                                                 setEditStructure(value);
                                                 updateProgramInArray({ ...currentProgram, structure: value });
                                             }}
-                                            className="text-cyan-400 text-sm font-medium bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            variant="edit"
                                         >
                                             <option value="weekly">Weekly (7-day cycles)</option>
                                             <option value="rotating">Rotating (A/B/C days)</option>
                                             <option value="block">Block-based (Mesocycles)</option>
                                             <option value="frequency">Single Template (Full body)</option>
-                                        </select>
+                                        </Select>
                                     </div>
 
                                     {/* Weeks */}

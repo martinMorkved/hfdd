@@ -10,6 +10,7 @@ export { NumberInput } from "./NumberInput";
 export { PageHeader } from "./PageHeader";
 export { PageLayout } from "./PageLayout";
 export { RepInput } from "./RepInput";
+export { Select } from "./Select";
 export { StatCard } from "./StatCard";
 export { TextArea } from "./TextArea";
 export { TextInput } from "./TextInput";
