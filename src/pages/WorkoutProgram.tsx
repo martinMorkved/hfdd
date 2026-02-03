@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
@@ -72,20 +72,22 @@ export default function WorkoutProgram() {
         removeDayFromWeek,
         updateDayName,
         selectProgram,
-        setCurrentProgram,
+        isDirty,
+        startNewProgram,
+        revertProgramToSaved,
         deleteProgram,
         updateProgramInArray
     } = useWorkoutProgram();
 
-    // Auto-select program if coming from Programs page
+    // Auto-select program only when first landing from Programs page. Don't auto-select if user chose "Create without saving" (ref stays true until they leave the page).
     useEffect(() => {
-        if (selectedProgramId && programs.length > 0) {
+        if (selectedProgramId && programs.length > 0 && !currentProgram && !userChoseNewProgramRef.current) {
             const programToSelect = programs.find(p => p.id === selectedProgramId);
             if (programToSelect) {
                 selectProgram(programToSelect);
             }
         }
-    }, [selectedProgramId, programs, selectProgram]);
+    }, [selectedProgramId, programs, selectProgram, currentProgram]);
 
     const {
         selectedMuscleGroups,
@@ -137,6 +139,10 @@ export default function WorkoutProgram() {
     // Mobile: add-exercise full-screen target (week + day) and selected exercise ids for multi-add
     const [addExerciseTarget, setAddExerciseTarget] = useState<{ weekNumber: number; dayName: string } | null>(null);
     const [addExerciseSelectedIds, setAddExerciseSelectedIds] = useState<Set<string>>(new Set());
+    // "+ New program" with unsaved changes: show Save / Cancel / Create without saving
+    const [showNewProgramConfirmModal, setShowNewProgramConfirmModal] = useState(false);
+    // When user chose "Create without saving", don't auto-select from location even if selectedProgramId is still set
+    const userChoseNewProgramRef = useRef(false);
 
     // Clear selection when opening add-exercise panel
     useEffect(() => {
@@ -345,7 +351,15 @@ export default function WorkoutProgram() {
                                         <div className="flex gap-2 flex-wrap items-center">
                                             {currentProgram && (
                                                 <button
-                                                    onClick={() => setCurrentProgram(null)}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isDirty) {
+                                                            setShowNewProgramConfirmModal(true);
+                                                        } else {
+                                                            startNewProgram();
+                                                            navigate(location.pathname, { replace: true, state: {} });
+                                                        }
+                                                    }}
                                                     className="px-4 py-2 rounded-lg border border-dashed border-cyan-500 text-cyan-400 hover:bg-cyan-900/30 transition"
                                                 >
                                                     + New program
@@ -1045,6 +1059,54 @@ export default function WorkoutProgram() {
                         confirmText="Delete"
                         confirmButtonStyle="bg-red-600 hover:bg-red-700"
                     />
+
+                    {/* New program with unsaved changes: Save / Cancel / Create without saving */}
+                    <Modal
+                        isOpen={showNewProgramConfirmModal}
+                        onClose={() => setShowNewProgramConfirmModal(false)}
+                        title="Unsaved changes"
+                    >
+                        <p className="text-gray-300 mb-6">
+                            You have unsaved changes to this program. Save before creating a new program, or discard and continue?
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const ok = await saveProgramChanges();
+                                    if (ok) {
+                                        setShowNewProgramConfirmModal(false);
+                                        startNewProgram();
+                                        navigate(location.pathname, { replace: true, state: {} });
+                                    }
+                                }}
+                                className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-medium"
+                            >
+                                Save, then create new program
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const programId = currentProgram?.id;
+                                    userChoseNewProgramRef.current = true;
+                                    setShowNewProgramConfirmModal(false);
+                                    navigate(location.pathname, { replace: true, state: {} });
+                                    if (programId) await revertProgramToSaved(programId);
+                                    startNewProgram();
+                                }}
+                                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition font-medium"
+                            >
+                                Create new program without saving
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowNewProgramConfirmModal(false)}
+                                className="w-full px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition font-medium"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </Modal>
 
                     {/* Remove cycle confirmation (rotating) */}
                     <ConfirmationModal
