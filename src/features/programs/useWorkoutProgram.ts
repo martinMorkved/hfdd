@@ -324,6 +324,45 @@ export const useWorkoutProgram = () => {
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
+    // Add multiple exercises to a day in one update (for mobile multi-select). Persisted when user clicks Save or Save and Finish.
+    const addExercisesToDay = (exercises: Exercise[], weekNumber: number, dayName: string) => {
+        if (!currentProgram || exercises.length === 0) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
+
+        const newWorkoutExercises: WorkoutExercise[] = exercises.map((exercise) => ({
+            id: nextTempId(),
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            sets: 3,
+            reps: [10, 10, 10],
+            comment: undefined,
+            alternatives: []
+        }));
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName
+                                ? { ...d, exercises: [...d.exercises, ...newWorkoutExercises] }
+                                : d
+                        )
+                    }
+                    : w
+            )
+        };
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+    };
+
     // Update exercise details locally only (no DB). Call saveProgramChanges() to persist.
     const updateExerciseLocal = (weekNumber: number, dayName: string, exerciseId: string, updates: Partial<WorkoutExercise>) => {
         if (!currentProgram) return;
@@ -577,8 +616,8 @@ export const useWorkoutProgram = () => {
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
-    // Remove exercise from day (local only). Persisted when user clicks Save or Save and Finish.
-    const removeExerciseFromDay = (weekNumber: number, dayName: string, exerciseId: string) => {
+    // Remove exercise from day by workout exercise instance id (local only). Persisted when user clicks Save or Save and Finish.
+    const removeExerciseFromDay = (weekNumber: number, dayName: string, workoutExerciseId: string) => {
         if (!currentProgram) return;
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
@@ -595,7 +634,7 @@ export const useWorkoutProgram = () => {
                         ...w,
                         days: w.days.map(d =>
                             d.name === dayName
-                                ? { ...d, exercises: d.exercises.filter(e => e.exerciseId !== exerciseId) }
+                                ? { ...d, exercises: d.exercises.filter(e => e.id !== workoutExerciseId) }
                                 : d
                         )
                     }
@@ -852,6 +891,7 @@ export const useWorkoutProgram = () => {
         createNewProgram,
         updateProgramInArray,
         addExerciseToDay,
+        addExercisesToDay,
         updateExerciseLocal,
         moveExerciseInDay,
         reorderExerciseInDay,

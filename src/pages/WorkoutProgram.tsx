@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
+import { Checkbox } from "../components/ui/Checkbox";
+import { TextInput } from "../components/ui/TextInput";
+import { TextArea } from "../components/ui/TextArea";
+import { RepInput } from "../components/ui/RepInput";
 import { supabase } from "../lib/supabase";
 import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
@@ -55,6 +59,7 @@ export default function WorkoutProgram() {
         setProgramStructure,
         createNewProgram,
         addExerciseToDay,
+        addExercisesToDay,
         updateExerciseLocal,
         moveExerciseInDay,
         reorderExerciseInDay,
@@ -128,6 +133,26 @@ export default function WorkoutProgram() {
     const [saveSuccess, setSaveSuccess] = useState(false);
     // Drag-and-drop reorder: show drop indicator at this position (same day)
     const [dropTargetReorder, setDropTargetReorder] = useState<{ weekNumber: number; dayName: string; insertIndex: number } | null>(null);
+    // Mobile: add-exercise full-screen target (week + day) and selected exercise ids for multi-add
+    const [addExerciseTarget, setAddExerciseTarget] = useState<{ weekNumber: number; dayName: string } | null>(null);
+    const [addExerciseSelectedIds, setAddExerciseSelectedIds] = useState<Set<string>>(new Set());
+
+    // Clear selection when opening add-exercise panel
+    useEffect(() => {
+        if (addExerciseTarget !== null) {
+            setAddExerciseSelectedIds(new Set());
+        }
+    }, [addExerciseTarget]);
+
+    // Mobile layout: hide sidebar, show "Add exercise" per day and Remove button
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 767px)");
+        const update = () => setIsMobile(mq.matches);
+        update();
+        mq.addEventListener("change", update);
+        return () => mq.removeEventListener("change", update);
+    }, []);
 
     // Sync editable fields when current program changes
     useEffect(() => {
@@ -224,34 +249,38 @@ export default function WorkoutProgram() {
     return (
         <div className="min-h-screen bg-gray-900">
             <div className="flex h-screen">
-                {/* Exercise Sidebar */}
-                <ExerciseSidebar
-                    showExerciseSidebar={showExerciseSidebar}
-                    setShowExerciseSidebar={setShowExerciseSidebar}
-                    exercises={exercises}
-                    filteredExercises={filteredExercises}
-                    muscleGroups={muscleGroups}
-                    selectedMuscleGroups={selectedMuscleGroups}
-                    setSelectedMuscleGroups={setSelectedMuscleGroups}
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    onDragStart={handleDragStart}
-                />
+                {/* Exercise Sidebar (hidden on mobile; use "Add exercise" per day instead) */}
+                {!isMobile && (
+                    <ExerciseSidebar
+                        showExerciseSidebar={showExerciseSidebar}
+                        setShowExerciseSidebar={setShowExerciseSidebar}
+                        exercises={exercises}
+                        filteredExercises={filteredExercises}
+                        muscleGroups={muscleGroups}
+                        selectedMuscleGroups={selectedMuscleGroups}
+                        setSelectedMuscleGroups={setSelectedMuscleGroups}
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        onDragStart={handleDragStart}
+                    />
+                )}
 
                 {/* Main Content */}
                 <div className="flex-1 overflow-y-auto relative">
-                    <div className="p-8">
+                    <div className="p-4 md:p-8">
                         <div className="max-w-[1100px] mx-auto">
                             <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold text-white">
+                                <h2 className="text-2xl md:text-3xl font-bold text-white">
                                     {currentProgram ? "Edit Program" : "Create Program"}
                                 </h2>
-                                <button
-                                    onClick={() => setShowExerciseSidebar(!showExerciseSidebar)}
-                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
-                                >
-                                    {showExerciseSidebar ? 'Hide' : 'Show'} Exercise Library
-                                </button>
+                                {!isMobile && (
+                                    <button
+                                        onClick={() => setShowExerciseSidebar(!showExerciseSidebar)}
+                                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
+                                    >
+                                        {showExerciseSidebar ? 'Hide' : 'Show'} Exercise Library
+                                    </button>
+                                )}
                             </div>
 
                             {/* Program Selection/Creation - only when no program selected */}
@@ -259,22 +288,23 @@ export default function WorkoutProgram() {
                                 {!currentProgram && (
                                     <>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <input
-                                                type="text"
+                                            <TextInput
+                                                variant="search"
                                                 placeholder="Program name"
                                                 value={programName}
-                                                onChange={(e) => {
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                     setProgramName(e.target.value);
                                                     setShowNameError(false);
                                                 }}
-                                                className={`rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 placeholder-gray-400 border ${showNameError ? "border-red-500 focus:ring-red-500" : "border-gray-400 focus:ring-cyan-500"}`}
+                                                error={showNameError}
+                                                className="rounded-lg px-4 py-2"
                                             />
-                                            <input
-                                                type="text"
+                                            <TextInput
+                                                variant="search"
                                                 placeholder="Description"
                                                 value={programDescription}
-                                                onChange={(e) => setProgramDescription(e.target.value)}
-                                                className="border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProgramDescription(e.target.value)}
+                                                className="rounded-lg px-4 py-2"
                                             />
                                             <select
                                                 value={programStructure}
@@ -502,15 +532,17 @@ export default function WorkoutProgram() {
                                                                                 Remove day
                                                                             </button>
                                                                         )}
-                                                                    <span className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
-                                                                        ? 'text-cyan-300 font-medium'
-                                                                        : 'text-gray-400'
-                                                                        }`}>
-                                                                        {dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
-                                                                            ? 'Drop here!'
-                                                                            : 'Drop exercises here'
-                                                                        }
-                                                                    </span>
+                                                                    {!isMobile && (
+                                                                        <span className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
+                                                                            ? 'text-cyan-300 font-medium'
+                                                                            : 'text-gray-400'
+                                                                            }`}>
+                                                                            {dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
+                                                                                ? 'Drop here!'
+                                                                                : 'Drop exercises here'
+                                                                            }
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </div>
 
@@ -590,9 +622,13 @@ export default function WorkoutProgram() {
                                                                                             >
                                                                                                 Alternatives
                                                                                             </button>
-                                                                                            <div className="text-xs text-gray-400">
-                                                                                                Drag to remove
-                                                                                            </div>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => removeExerciseFromDay(week.weekNumber, day.name, exercise.id)}
+                                                                                                className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                                                            >
+                                                                                                Remove
+                                                                                            </button>
                                                                                         </div>
                                                                                     </div>
 
@@ -605,11 +641,9 @@ export default function WorkoutProgram() {
                                                                                                     <div key={index} className="flex flex-col">
                                                                                                         <span className="text-gray-400 text-sm mb-1">Set {index + 1}:</span>
                                                                                                         <div className="flex items-center gap-1">
-                                                                                                            <input
-                                                                                                                type="text"
-                                                                                                                inputMode="numeric"
+                                                                                                            <RepInput
                                                                                                                 value={repDisplay}
-                                                                                                                onChange={(e) => setEditingReps(prev => ({ ...prev, [repKey]: e.target.value }))}
+                                                                                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingReps(prev => ({ ...prev, [repKey]: e.target.value }))}
                                                                                                                 onBlur={() => {
                                                                                                                     const raw = editingReps[repKey] ?? String(rep);
                                                                                                                     const parsed = parseInt(raw, 10);
@@ -621,8 +655,7 @@ export default function WorkoutProgram() {
                                                                                                                         return next;
                                                                                                                     });
                                                                                                                 }}
-                                                                                                                className="w-16 border border-gray-600 rounded-lg px-2 py-2 bg-gray-800 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                                                                                                placeholder={`Reps`}
+                                                                                                                placeholder="Reps"
                                                                                                             />
                                                                                                             {exercise.reps.length > 1 && (
                                                                                                                 <button
@@ -639,7 +672,7 @@ export default function WorkoutProgram() {
                                                                                                                             return next;
                                                                                                                         });
                                                                                                                     }}
-                                                                                                                    className="text-gray-500 hover:text-red-400 transition text-lg leading-none px-1"
+                                                                                                                    className="h-9 text-gray-500 hover:text-red-400 transition text-lg leading-none px-1 flex items-center justify-center"
                                                                                                                     title="Remove set"
                                                                                                                 >
                                                                                                                     ×
@@ -652,7 +685,7 @@ export default function WorkoutProgram() {
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => updateExerciseSets(week.weekNumber, day.name, exercise.exerciseId, exercise.sets + 1)}
-                                                                                                className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center shrink-0"
+                                                                                                className="w-10 h-9 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center shrink-0"
                                                                                                 title="Add set"
                                                                                             >
                                                                                                 +
@@ -662,11 +695,10 @@ export default function WorkoutProgram() {
 
                                                                                     <div>
                                                                                         <label className="text-gray-300 text-sm font-medium mb-2 block">Comment</label>
-                                                                                        <textarea
+                                                                                        <TextArea
                                                                                             value={exercise.comment || ""}
-                                                                                            onChange={(e) => updateExerciseComment(week.weekNumber, day.name, exercise.exerciseId, e.target.value)}
+                                                                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateExerciseComment(week.weekNumber, day.name, exercise.exerciseId, e.target.value)}
                                                                                             placeholder="Add notes about form, progression, etc..."
-                                                                                            className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                                                                                             rows={2}
                                                                                         />
                                                                                     </div>
@@ -701,6 +733,15 @@ export default function WorkoutProgram() {
                                                                         );
                                                                     })}
                                                                 </div>
+                                                            )}
+                                                            {isMobile && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setAddExerciseTarget({ weekNumber: week.weekNumber, dayName: day.name })}
+                                                                    className="mt-4 w-full py-2.5 rounded-lg border border-dashed border-cyan-500 text-cyan-400 hover:bg-cyan-900/30 transition font-medium"
+                                                                >
+                                                                    + Add exercise
+                                                                </button>
                                                             )}
                                                         </div>
                                                     ))}
@@ -795,40 +836,45 @@ export default function WorkoutProgram() {
                                 </div>
                             </Modal>
 
-                            {/* Alternatives Modal */}
+                            {/* Alternatives Modal – Done fixed at bottom */}
                             <Modal
                                 isOpen={showAlternativesModal}
                                 onClose={() => {
                                     setShowAlternativesModal(false);
                                     setSelectedExerciseForAlternatives(null);
                                 }}
-                                title="Add Alternative Exercises"
-                                maxWidth="max-w-2xl"
+                                title="Add alternative exercises"
+                                maxWidth="max-w-md"
                             >
-                                <div className="max-h-[80vh] overflow-y-auto">
-                                    <MultiSelectFilter
-                                        options={muscleGroups}
-                                        selected={selectedMuscleGroups}
-                                        onSelect={setSelectedMuscleGroups}
-                                        label="Filter by Muscle Group"
-                                    />
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 mb-6">
+                                <div className="flex flex-col max-h-[70vh]">
+                                    <div className="space-y-4 shrink-0">
+                                        <TextInput
+                                            variant="search"
+                                            placeholder="Search exercises..."
+                                            value={searchTerm}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                        />
+                                        <MultiSelectFilter
+                                            options={muscleGroups}
+                                            selected={selectedMuscleGroups}
+                                            onSelect={setSelectedMuscleGroups}
+                                            label="Filter by Muscle Group"
+                                        />
+                                    </div>
+                                    <div className="flex-1 min-h-0 overflow-y-auto space-y-2 mt-2">
                                         {filteredExercises
-                                            .filter(ex => ex.name !== selectedExerciseForAlternatives?.exerciseId)
-                                            .map(exercise => (
-                                                <div
-                                                    key={exercise.id}
-                                                    className="bg-gray-700 rounded p-3 cursor-pointer hover:bg-gray-600 transition"
+                                            .filter(ex => ex.id !== selectedExerciseForAlternatives?.exerciseId)
+                                            .map((ex) => (
+                                                <button
+                                                    key={ex.id}
+                                                    type="button"
                                                     onClick={() => {
                                                         const currentExercise = currentProgram?.weeks
                                                             .find(w => w.weekNumber === selectedExerciseForAlternatives?.weekNumber)
                                                             ?.days.find(d => d.name === selectedExerciseForAlternatives?.dayName)
                                                             ?.exercises.find(e => e.exerciseId === selectedExerciseForAlternatives?.exerciseId);
-
                                                         const currentAlternatives = currentExercise?.alternatives || [];
-                                                        const newAlternatives = [...currentAlternatives, exercise.name];
-
+                                                        const newAlternatives = [...currentAlternatives, ex.name];
                                                         if (selectedExerciseForAlternatives) {
                                                             updateExerciseAlternatives(
                                                                 selectedExerciseForAlternatives.weekNumber,
@@ -838,36 +884,139 @@ export default function WorkoutProgram() {
                                                             );
                                                         }
                                                     }}
+                                                    className="w-full text-left bg-gray-700 rounded-lg p-3 hover:bg-gray-600 transition"
                                                 >
-                                                    <div className="font-medium text-white">{exercise.name}</div>
-                                                    {exercise.muscle_group && (
-                                                        <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
-                                                    )}
-                                                    {exercise.description && (
-                                                        <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                                                    )}
-                                                </div>
+                                                    <div className="font-medium text-white">{ex.name}</div>
+                                                    {ex.muscle_group && <div className="text-sm text-gray-300">{ex.muscle_group}</div>}
+                                                </button>
                                             ))}
                                     </div>
-
-                                    <div className="flex justify-end gap-3">
+                                    <div className="shrink-0 pt-4 border-t border-gray-700 mt-4">
                                         <button
                                             onClick={() => {
                                                 setShowAlternativesModal(false);
                                                 setSelectedExerciseForAlternatives(null);
                                             }}
-                                            className="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
+                                            className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 hover:bg-gray-600 transition font-semibold"
                                         >
                                             Done
                                         </button>
                                     </div>
                                 </div>
                             </Modal>
+
+                            {/* Add exercise full-screen (mobile): checkboxes + fixed Done */}
+                            {isMobile && addExerciseTarget !== null && (
+                                <div className="fixed inset-0 z-50 bg-gray-800 flex flex-col">
+                                    <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
+                                        <h3 className="text-lg font-bold text-white">
+                                            Add exercise to {addExerciseTarget.dayName}
+                                        </h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAddExerciseTarget(null)}
+                                            className="text-gray-400 hover:text-white p-2"
+                                            aria-label="Close"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                                        <div className="p-4 shrink-0 space-y-4">
+                                            <TextInput
+                                                variant="search"
+                                                placeholder="Search exercises..."
+                                                value={searchTerm}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                            />
+                                            <MultiSelectFilter
+                                                options={muscleGroups}
+                                                selected={selectedMuscleGroups}
+                                                onSelect={setSelectedMuscleGroups}
+                                                label="Filter by Muscle Group"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2">
+                                            <div className="space-y-3">
+                                                {filteredExercises.map((exercise) => {
+                                                    const isChecked = addExerciseSelectedIds.has(exercise.id);
+                                                    const toggle = () => {
+                                                        setAddExerciseSelectedIds((prev) => {
+                                                            const next = new Set(prev);
+                                                            if (next.has(exercise.id)) next.delete(exercise.id);
+                                                            else next.add(exercise.id);
+                                                            return next;
+                                                        });
+                                                    };
+                                                    return (
+                                                        <div
+                                                            key={exercise.id}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={toggle}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter" || e.key === " ") {
+                                                                    e.preventDefault();
+                                                                    toggle();
+                                                                }
+                                                            }}
+                                                            className="w-full text-left bg-gray-700 rounded-lg p-3 hover:bg-gray-600 transition cursor-pointer flex items-center gap-3"
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onChange={toggle}
+                                                                ariaLabel={`Select ${exercise.name}`}
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="font-medium text-white">{exercise.name}</div>
+                                                                {exercise.muscle_group && (
+                                                                    <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
+                                                                )}
+                                                                {exercise.description && (
+                                                                    <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
+                                                                )}
+                                                            </div>
+                                                            <span onClick={(e) => e.stopPropagation()}>
+                                                                <ExerciseHistoryButton
+                                                                    exerciseId={exercise.id}
+                                                                    exerciseName={exercise.name}
+                                                                    variant="icon"
+                                                                    className="shrink-0"
+                                                                />
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0 p-4 border-t border-gray-700">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (addExerciseTarget && addExerciseSelectedIds.size > 0) {
+                                                    const order = filteredExercises.map((e) => e.id);
+                                                    const toAdd = order
+                                                        .filter((id) => addExerciseSelectedIds.has(id))
+                                                        .map((id) => filteredExercises.find((e) => e.id === id))
+                                                        .filter((ex): ex is Exercise => ex != null);
+                                                    addExercisesToDay(toAdd, addExerciseTarget.weekNumber, addExerciseTarget.dayName);
+                                                }
+                                                setAddExerciseTarget(null);
+                                                setAddExerciseSelectedIds(new Set());
+                                            }}
+                                            className="w-full py-3 bg-cyan-600 text-white rounded-lg font-semibold hover:bg-cyan-700 transition"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Remove Zone */}
-                    {showRemoveZone && (
+                    {/* Remove Zone (desktop only; mobile uses Remove button) */}
+                    {!isMobile && showRemoveZone && (
                         <div
                             className="fixed top-1/2 right-4 transform -translate-y-1/2 bg-red-600 text-white p-6 rounded-lg border-2 border-red-400 shadow-lg z-50"
                             onDragOver={handleRemoveZoneDragOver}

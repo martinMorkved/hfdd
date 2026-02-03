@@ -42,7 +42,7 @@ export const useDragAndDrop = (
             removeExerciseFromDay(
                 draggedWorkoutExercise.weekNumber,
                 draggedWorkoutExercise.dayName,
-                draggedWorkoutExercise.exerciseId
+                draggedWorkoutExercise.workoutExerciseId
             );
             setDraggedWorkoutExercise(null);
             setShowRemoveZone(false);
