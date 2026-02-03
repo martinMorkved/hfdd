@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { TextInput } from '../../components/ui/TextInput';
 
 export const ResetPassword: React.FC = () => {
     const [password, setPassword] = useState('');
@@ -70,13 +71,14 @@ export const ResetPassword: React.FC = () => {
                         <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                             New Password
                         </label>
-                        <input
+                        <TextInput
                             id="password"
                             type="password"
+                            variant="auth"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                            className="px-4 py-2"
                             placeholder="Enter new password"
                         />
                     </div>
@@ -85,13 +87,14 @@ export const ResetPassword: React.FC = () => {
                         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
                             Confirm New Password
                         </label>
-                        <input
+                        <TextInput
                             id="confirmPassword"
                             type="password"
+                            variant="auth"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                            className="px-4 py-2"
                             placeholder="Confirm new password"
                         />
                     </div>

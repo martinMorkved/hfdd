@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { TextInput } from "../../components/ui/TextInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { supabase } from "../../lib/supabase";
@@ -85,12 +86,11 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
 
             {/* Search Bar */}
             <div className="mb-6">
-                <input
-                    type="text"
+                <TextInput
                     placeholder="Search exercises..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full border border-gray-400 rounded-lg px-4 py-3 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                    className="px-4 py-3"
                 />
             </div>
 

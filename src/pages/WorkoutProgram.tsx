@@ -373,17 +373,16 @@ export default function WorkoutProgram() {
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between gap-4 flex-wrap">
                                             <div className="relative max-w-md min-w-0 flex-1">
-                                                <input
-                                                    type="text"
+                                                <TextInput
                                                     value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
                                                     onBlur={() => {
                                                         const trimmed = editName.trim();
                                                         if (trimmed && trimmed !== currentProgram.name) {
                                                             updateProgramInArray({ ...currentProgram, name: trimmed });
                                                         } else if (!trimmed) setEditName(currentProgram.name);
                                                     }}
-                                                    className="text-2xl font-bold text-white bg-gray-800 border border-gray-600 rounded-lg pl-4 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 placeholder-gray-400"
+                                                    className="text-2xl font-bold pl-4 pr-10 py-2"
                                                     placeholder="Program name"
                                                 />
                                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
@@ -416,16 +415,15 @@ export default function WorkoutProgram() {
                                             </div>
                                         </div>
                                         <div className="relative max-w-md">
-                                            <input
-                                                type="text"
+                                            <TextInput
                                                 value={editDescription}
-                                                onChange={(e) => setEditDescription(e.target.value)}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditDescription(e.target.value)}
                                                 onBlur={() => {
                                                     if (editDescription !== (currentProgram.description ?? "")) {
                                                         updateProgramInArray({ ...currentProgram, description: editDescription || undefined });
                                                     }
                                                 }}
-                                                className="text-gray-300 bg-gray-800 border border-gray-600 rounded-lg pl-4 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 placeholder-gray-400"
+                                                className="text-gray-300 pl-4 pr-10 py-2"
                                                 placeholder="Description (optional)"
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
@@ -482,10 +480,10 @@ export default function WorkoutProgram() {
                                                             <div className="flex items-center justify-between mb-6">
                                                                 {editingDayId === day.id ? (
                                                                     <div className="relative flex-1 max-w-xs">
-                                                                        <input
-                                                                            type="text"
+                                                                        <TextInput
+                                                                            variant="auth"
                                                                             value={editingDayName}
-                                                                            onChange={(e) => setEditingDayName(e.target.value)}
+                                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingDayName(e.target.value)}
                                                                             onBlur={() => {
                                                                                 const trimmed = editingDayName.trim();
                                                                                 if (trimmed && trimmed !== day.name) {
@@ -499,7 +497,7 @@ export default function WorkoutProgram() {
                                                                                 }
                                                                             }}
                                                                             autoFocus
-                                                                            className="text-xl font-semibold text-white bg-gray-700 border border-gray-600 rounded-lg pl-3 pr-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                                            className="text-xl font-semibold pl-3 pr-10 py-2"
                                                                         />
                                                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                                             <EditIcon size={18} className="text-gray-400" />

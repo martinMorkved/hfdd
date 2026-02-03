@@ -7,6 +7,8 @@ import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageLayout } from '../components/ui/PageLayout';
 import { EmptyState } from '../components/ui/EmptyState';
+import { TextInput } from '../components/ui/TextInput';
+import { Checkbox } from '../components/ui/Checkbox';
 import { ExerciseHistoryButton } from '../features/exercises';
 import { EditIcon } from '../components/icons';
 
@@ -618,11 +620,10 @@ export default function WorkoutHistory() {
                     <p className="text-gray-300 mb-4">
                         Update the name of your workout session:
                     </p>
-                    <input
-                        type="text"
+                    <TextInput
                         value={editSessionName}
                         onChange={(e) => setEditSessionName(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-500 focus:outline-none mb-4"
+                        className="mb-4 px-4 py-3"
                         placeholder="Enter new session name..."
                         autoFocus
                     />
@@ -664,12 +665,11 @@ export default function WorkoutHistory() {
                         <div className="space-y-2">
                             {sessionsToMerge.map((session, index) => (
                                 <div key={session.id} className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
-                                    <input
-                                        type="checkbox"
-                                        id={`merge-${session.id}`}
+                                    <Checkbox
                                         checked={selectedSessionsForMerge.has(session.id)}
                                         onChange={() => toggleSessionSelection(session.id)}
-                                        className="w-5 h-5 text-cyan-600 bg-gray-600 border-gray-500 rounded focus:ring-cyan-500"
+                                        ariaLabel={`Select session ${session.session_name} for merge`}
+                                        inputProps={{ id: `merge-${session.id}` }}
                                     />
                                     <label htmlFor={`merge-${session.id}`} className="flex-1 cursor-pointer">
                                         <div className="font-semibold text-white">

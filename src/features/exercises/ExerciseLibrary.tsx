@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
+import { TextInput } from "../../components/ui/TextInput";
 import { supabase } from "../../lib/supabase";
 import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 import { useAuth } from "../../contexts/AuthContext";
@@ -130,27 +131,27 @@ export const ExerciseLibrary: React.FC = () => {
                 {error && <ErrorMessage message={error} className="mb-6" />}
 
                 <form onSubmit={handleAddExercise} className="flex flex-row gap-4 mb-8 items-center">
-                    <input
-                        type="text"
+                    <TextInput
+                        variant="search"
                         placeholder="Exercise name"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         required
-                        className="flex-1 border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                        className="flex-1 px-4 py-2"
                     />
-                    <input
-                        type="text"
+                    <TextInput
+                        variant="search"
                         placeholder="Description"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
-                        className="flex-1 border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                        className="flex-1 px-4 py-2"
                     />
-                    <input
-                        type="text"
+                    <TextInput
+                        variant="search"
                         placeholder="Muscle group"
                         value={muscleGroup}
                         onChange={e => setMuscleGroup(e.target.value)}
-                        className="flex-1 border border-gray-400 rounded-lg px-4 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                        className="flex-1 px-4 py-2"
                     />
                     <button
                         type="submit"

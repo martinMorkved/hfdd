@@ -4,6 +4,8 @@ import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from
 import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
 import { Modal } from '../components/ui/Modal';
 import { NumberInput } from '../components/ui/NumberInput';
+import { TextInput } from '../components/ui/TextInput';
+import { TextArea } from '../components/ui/TextArea';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageLayout } from '../components/ui/PageLayout';
@@ -347,12 +349,11 @@ export default function WorkoutLogger() {
                             <p className="text-gray-300 mb-4">
                                 We've pre-filled a name for your workout session. You can edit it or just click "Start Workout" to begin!
                             </p>
-                            <input
-                                type="text"
+                            <TextInput
                                 value={sessionName}
                                 onChange={(e) => setSessionName(e.target.value)}
                                 placeholder="e.g., Upper Body, Leg Day, Quick Cardio"
-                                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-500 focus:outline-none"
+                                className="px-4 py-3"
                                 onKeyPress={(e) => e.key === 'Enter' && handleCreateSession()}
                                 autoFocus
                             />
@@ -495,10 +496,9 @@ export default function WorkoutLogger() {
                                 <label className="block text-gray-300 text-sm font-medium mb-2">
                                     Notes (optional)
                                 </label>
-                                <textarea
+                                <TextArea
                                     value={exerciseForm.notes}
                                     onChange={(e) => setExerciseForm(prev => ({ ...prev, notes: e.target.value }))}
-                                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
                                     rows={3}
                                     placeholder="Any notes about this exercise..."
                                 />
@@ -626,11 +626,11 @@ export default function WorkoutLogger() {
                                                 </div>
                                                 <div>
                                                     <label className="block text-gray-400 text-sm mb-1">Notes</label>
-                                                    <input
-                                                        type="text"
+                                                    <TextInput
+                                                        variant="auth"
                                                         value={exercise.notes || ''}
                                                         onChange={(e) => handleUpdateExercise(exercise.id, { notes: e.target.value })}
-                                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
+                                                        className="px-3 py-2"
                                                         placeholder="Optional notes..."
                                                     />
                                                 </div>
