@@ -162,7 +162,6 @@ export const ExerciseLibrary: React.FC = () => {
                             options={muscleGroups}
                             selected={selectedMuscleGroups}
                             onSelect={setSelectedMuscleGroups}
-                            label="Select Muscle Groups"
                             placeholder="Type to add muscle groups..."
                         />
                     </div>
@@ -193,7 +192,6 @@ export const ExerciseLibrary: React.FC = () => {
                             options={muscleGroups}
                             selected={selectedGroups}
                             onSelect={setSelectedGroups}
-                            label="Filter by Muscle Group"
                         />
                         <ul className="space-y-4">
                             {filteredExercises.map(ex => (
