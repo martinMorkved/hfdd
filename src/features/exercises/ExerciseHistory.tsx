@@ -67,11 +67,12 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
             setError(null);
 
             // Get all workout logs for this exercise, joined with session info
+            // Use the specific foreign key relationship name to avoid ambiguity
             const { data, error } = await supabase
                 .from('workout_logs')
                 .select(`
                     *,
-                    workout_sessions!inner(
+                    workout_sessions!fk_workout_logs_session_id(
                         session_date,
                         session_name
                     )

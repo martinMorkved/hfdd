@@ -127,6 +127,27 @@ export default function WorkoutLogger() {
         return matchesSearch && matchesMuscleGroup;
     });
 
+    // Validate that program sessions match the active program
+    // Only validate if we're not editing a session from history
+    useEffect(() => {
+        // Don't validate if we're editing a session from history
+        if (location.state?.editSession) return;
+
+        // Only validate if we have a current session
+        if (!currentSession || currentSession.session_type !== 'program') return;
+
+        if (activeProgram) {
+            // If the session's program_id doesn't match the active program, clear it
+            if (currentSession.program_id !== activeProgram.id) {
+                clearSession();
+            }
+        } else {
+            // If there's a program session but no active program, clear it
+            clearSession();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSession?.id, currentSession?.program_id, activeProgram?.id, location.state?.editSession]);
+
     // Check for edit session from WorkoutHistory
     useEffect(() => {
         const editSession = location.state?.editSession;
@@ -184,7 +205,10 @@ export default function WorkoutLogger() {
     };
 
     const handleSelectProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[] }[]) => {
-        if (!activeProgram) return;
+        if (!activeProgram || !activeProgram.id || !activeProgram.name) {
+            console.error('Cannot create session: active program is invalid', activeProgram);
+            return;
+        }
         const mapped: ProgramDayExercise[] = dayExercises.map((ex) => ({
             exercise_id: ex.exerciseId,
             exercise_name: ex.exerciseName,
