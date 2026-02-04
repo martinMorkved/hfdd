@@ -144,8 +144,8 @@ export const ExerciseLibrary: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900">
-            <div className="w-full max-w-[1100px] p-8 bg-gray-900 rounded-xl shadow-lg">
+        <div className="min-h-screen bg-gray-900">
+            <div className="w-full max-w-[1100px] mx-auto p-8 bg-gray-900 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold text-white">Exercise Library</h2>
                 </div>
