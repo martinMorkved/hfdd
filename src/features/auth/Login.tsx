@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { TextInput } from '../../components/ui/TextInput';
+import { Button } from '../../components/ui/Button';
 
 type AuthMode = 'signIn' | 'signUp' | 'forgotPassword' | 'resetPassword';
 
@@ -175,13 +176,15 @@ export const Login: React.FC = () => {
                         </div>
                     )}
 
-                    <button
+                    <Button
                         type="submit"
+                        variant="primary"
                         disabled={loading}
-                        className="w-full px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        fullWidth
+                        className="px-6 py-3 font-semibold"
                     >
                         {getButtonText()}
-                    </button>
+                    </Button>
                 </form>
 
                 {/* Navigation links */}

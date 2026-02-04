@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { TextInput } from '../../components/ui/TextInput';
+import { Button } from '../../components/ui/Button';
 
 export const ResetPassword: React.FC = () => {
     const [password, setPassword] = useState('');
@@ -99,13 +100,15 @@ export const ResetPassword: React.FC = () => {
                         />
                     </div>
 
-                    <button
+                    <Button
                         type="submit"
+                        variant="primary"
                         disabled={loading}
-                        className="w-full px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        fullWidth
+                        className="px-6 py-3 font-semibold"
                     >
                         {loading ? 'Updating...' : 'Update Password'}
-                    </button>
+                    </Button>
                 </form>
             </div>
         </div>

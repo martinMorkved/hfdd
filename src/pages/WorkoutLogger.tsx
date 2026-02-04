@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
 import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
 import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
 import { NumberInput } from '../components/ui/NumberInput';
 import { TextInput } from '../components/ui/TextInput';
 import { TextArea } from '../components/ui/TextArea';
@@ -14,7 +15,7 @@ import { ExerciseSelector, ExerciseHistoryButton } from '../features/exercises';
 import { MobileExerciseSelector } from '../components/MobileExerciseSelector';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../features/exercises/types';
-import { PlusIcon } from '../components/icons';
+import { PlusIcon, CheckIcon, XIcon, CalendarIcon } from '../components/icons';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
@@ -332,12 +333,12 @@ export default function WorkoutLogger() {
                 <div className="text-center max-w-md">
                     <p className="text-gray-300 mb-4">You don&apos;t have an active program. Activate one from Programs to log from a program.</p>
                     <div className="flex gap-3 justify-center">
-                        <button onClick={() => navigate('/programs')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition">
+                        <Button onClick={() => navigate('/programs')} variant="primary" icon={<CalendarIcon size={18} />}>
                             Programs
-                        </button>
-                        <button onClick={() => navigate('/')} className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition">
+                        </Button>
+                        <Button onClick={() => navigate('/')} variant="secondary">
                             Home
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -367,24 +368,25 @@ export default function WorkoutLogger() {
                 }
                 actions={
                     <div className="flex gap-3 flex-shrink-0">
-                        <button
+                        <Button
                             onClick={() => {
                                 clearSession();
                                 navigate('/');
                             }}
-                            className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
                         >
                             Cancel
-                        </button>
+                        </Button>
                         {currentSession && (
-                            <button
+                            <Button
                                 onClick={handleFinishWorkout}
+                                variant="success"
+                                icon={<CheckIcon size={18} />}
                                 disabled={currentSession.exercises.length === 0}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
                                 title={currentSession.exercises.length === 0 ? 'Add at least one exercise to finish' : ''}
                             >
                                 {location.state?.editSession ? 'Save Changes' : 'Finish Workout'}
-                            </button>
+                            </Button>
                         )}
                     </div>
                 }
@@ -413,24 +415,29 @@ export default function WorkoutLogger() {
                         Would you like to continue this session or start a new one?
                     </p>
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             onClick={() => navigate('/')}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleStartNewSession}
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                            variant="primary"
+                            icon={<PlusIcon size={18} />}
+                            fullWidth
                         >
                             New Session
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleContinueExistingSession}
-                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                            variant="success"
+                            icon={<CheckIcon size={18} />}
+                            fullWidth
                         >
                             Continue
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -455,19 +462,22 @@ export default function WorkoutLogger() {
                         autoFocus
                     />
                     <div className="flex gap-3 mt-4">
-                        <button
+                        <Button
                             onClick={() => navigate('/')}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleCreateSession}
+                            variant="primary"
+                            icon={<PlusIcon size={18} />}
                             disabled={!sessionName.trim()}
-                            className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            fullWidth
                         >
                             Start Workout
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -505,12 +515,13 @@ export default function WorkoutLogger() {
                         ))}
                     </div>
                     <div className="flex gap-3 mt-4">
-                        <button
+                        <Button
                             onClick={() => navigate('/')}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -689,13 +700,14 @@ export default function WorkoutLogger() {
                 <div>
                     {/* Add Exercise Button */}
                     <div className="mb-6">
-                        <button
+                        <Button
                             onClick={handleAddExercise}
-                            className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-2"
+                            variant="primary"
+                            icon={<PlusIcon size={18} />}
+                            className="px-6 py-3 font-semibold"
                         >
-                            <PlusIcon size={18} />
                             Add Exercise
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Exercises List */}

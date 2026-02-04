@@ -1,9 +1,11 @@
 import React from "react";
 import { Checkbox } from "./ui/Checkbox";
 import { TextInput } from "./ui/TextInput";
+import { Button } from "./ui/Button";
 import { MultiSelectFilter } from "./ui/MultiSelectFilter";
 import { ExerciseHistoryButton } from "../features/exercises";
 import type { Exercise } from "../features/exercises/types";
+import { CheckIcon } from "./icons";
 
 interface MobileExerciseSelectorProps {
     isOpen: boolean;
@@ -120,17 +122,16 @@ export const MobileExerciseSelector: React.FC<MobileExerciseSelectorProps> = ({
                     </div>
                 </div>
                 <div className="shrink-0 p-4 border-t border-gray-700">
-                    <button
-                        type="button"
+                    <Button
                         onClick={onDone}
+                        variant={selectedExerciseIds.size === 0 ? "secondary" : "primary"}
+                        icon={selectedExerciseIds.size > 0 ? <CheckIcon size={18} /> : undefined}
                         disabled={selectedExerciseIds.size === 0}
-                        className={`w-full px-4 py-3 rounded-lg font-semibold transition ${selectedExerciseIds.size === 0
-                                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                                : "bg-cyan-600 text-white hover:bg-cyan-700"
-                            }`}
+                        fullWidth
+                        className="px-4 py-3 font-semibold"
                     >
                         Done {selectedExerciseIds.size > 0 && `(${selectedExerciseIds.size})`}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

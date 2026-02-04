@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Button } from './Button';
 
 interface ModalProps {
     isOpen: boolean;
@@ -120,12 +121,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <div>
                 <p className="text-gray-300 mb-6">{message}</p>
                 <div className="flex gap-3">
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                        variant="secondary"
+                        fullWidth
                     >
                         {cancelText}
-                    </button>
+                    </Button>
                     <button
                         onClick={onConfirm}
                         className={`flex-1 px-4 py-2 text-white rounded-lg transition ${confirmButtonStyle}`}

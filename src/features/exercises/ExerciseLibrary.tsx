@@ -4,10 +4,12 @@ import { MuscleGroupAutocomplete } from "../../components/ui/MuscleGroupAutocomp
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { TextInput } from "../../components/ui/TextInput";
+import { Button } from "../../components/ui/Button";
 import { ConfirmationModal } from "../../components/ui/Modal";
 import { supabase } from "../../lib/supabase";
 import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 import { useAuth } from "../../contexts/AuthContext";
+import { DumbbellIcon, PlusIcon } from "../../components/icons";
 import type { Exercise } from "./types";
 
 export const ExerciseLibrary: React.FC = () => {
@@ -147,7 +149,10 @@ export const ExerciseLibrary: React.FC = () => {
         <div className="min-h-screen bg-gray-900">
             <div className="w-full max-w-[1100px] mx-auto p-8 bg-gray-900 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-bold text-white">Exercise Library</h2>
+                    <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <DumbbellIcon size={32} className="text-cyan-400" />
+                        Exercise Library
+                    </h2>
                 </div>
 
                 {error && <ErrorMessage message={error} className="mb-6" />}
@@ -176,13 +181,15 @@ export const ExerciseLibrary: React.FC = () => {
                             placeholder="Type to add muscle groups..."
                         />
                     </div>
-                    <button
+                    <Button
                         type="submit"
+                        variant="primary"
+                        icon={<PlusIcon size={18} />}
                         disabled={loading}
-                        className="w-full md:w-auto md:ml-4 px-6 py-2 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full md:w-auto md:ml-4"
                     >
                         {loading ? 'Adding...' : 'Add Exercise'}
-                    </button>
+                    </Button>
                 </form>
 
                 {/* Loading State */}
@@ -226,13 +233,13 @@ export const ExerciseLibrary: React.FC = () => {
                                             exerciseName={ex.name}
                                             variant="icon"
                                         />
-                                        <button
+                                        <Button
                                             onClick={() => handleDeleteClick(ex.id, ex.name)}
+                                            variant="danger"
                                             disabled={loading}
-                                            className="px-4 py-2 bg-red-600 text-white rounded-lg border border-red-500 hover:bg-red-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Delete
-                                        </button>
+                                        </Button>
                                     </div>
                                 </li>
                             ))}

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
+import { Button } from "../components/ui/Button";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
 import { TextInput } from "../components/ui/TextInput";
 import { TextArea } from "../components/ui/TextArea";
 import { RepInput } from "../components/ui/RepInput";
 import { Select } from "../components/ui/Select";
 import { supabase } from "../lib/supabase";
-import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon } from "../components/icons";
+import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, PlusIcon, DumbbellIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
 import { MobileExerciseSelector } from "../components/MobileExerciseSelector";
 import type { Exercise } from "../features/exercises/types";
@@ -287,12 +288,13 @@ export default function WorkoutProgram() {
                                     {currentProgram ? "Edit Program" : "Create Program"}
                                 </h2>
                                 {!isMobile && (
-                                    <button
+                                    <Button
                                         onClick={() => setShowExerciseSidebar(!showExerciseSidebar)}
-                                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
+                                        variant="primary"
+                                        icon={<DumbbellIcon size={18} />}
                                     >
                                         {showExerciseSidebar ? 'Hide' : 'Show'} Exercise Library
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
 
@@ -331,7 +333,7 @@ export default function WorkoutProgram() {
                                             </Select>
                                         </div>
                                         <div className="flex justify-center mb-6">
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     if (!programName.trim()) {
                                                         setShowNameError(true);
@@ -340,10 +342,12 @@ export default function WorkoutProgram() {
                                                         createNewProgram();
                                                     }
                                                 }}
-                                                className="px-8 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold text-lg"
+                                                variant="primary"
+                                                icon={<PlusIcon size={20} />}
+                                                className="px-8 py-3 text-lg font-semibold"
                                             >
                                                 Create Program
-                                            </button>
+                                            </Button>
                                         </div>
                                     </>
                                 )}
@@ -356,7 +360,7 @@ export default function WorkoutProgram() {
                                         </h3>
                                         <div className="flex gap-2 flex-wrap items-center">
                                             {currentProgram && (
-                                                <button
+                                                <Button
                                                     type="button"
                                                     onClick={() => {
                                                         if (isDirty) {
@@ -366,10 +370,11 @@ export default function WorkoutProgram() {
                                                             navigate(location.pathname, { replace: true, state: {} });
                                                         }
                                                     }}
-                                                    className="px-4 py-2 rounded-lg border border-dashed border-cyan-500 text-cyan-400 hover:bg-cyan-900/30 transition"
+                                                    variant="ghost"
+                                                    className="px-4 py-2 border border-dashed border-cyan-500 text-cyan-400 hover:bg-cyan-900/30"
                                                 >
                                                     + New program
-                                                </button>
+                                                </Button>
                                             )}
                                             {programs.map(program => (
                                                 <button
@@ -795,7 +800,7 @@ export default function WorkoutProgram() {
 
                                         {/* Save and Save and Finish buttons */}
                                         <div className="flex justify-center gap-4 pt-6">
-                                            <button
+                                            <Button
                                                 onClick={async () => {
                                                     const ok = await saveProgramChanges();
                                                     if (ok) {
@@ -803,23 +808,23 @@ export default function WorkoutProgram() {
                                                         setTimeout(() => setSaveSuccess(false), 2500);
                                                     }
                                                 }}
-                                                className={`px-6 py-3 rounded-lg transition font-semibold flex items-center gap-2 ${saveSuccess
-                                                    ? "bg-green-600 text-white border border-green-500"
-                                                    : "bg-cyan-600 text-white hover:bg-cyan-700 border border-cyan-500"
-                                                    }`}
+                                                variant={saveSuccess ? "success" : "primary"}
+                                                icon={saveSuccess ? <CheckIcon size={20} /> : <CheckIcon size={18} />}
+                                                className="px-6 py-3 font-semibold"
                                             >
                                                 {saveSuccess ? "Saved" : "Save"}
-                                                {saveSuccess && <CheckIcon size={20} className="shrink-0" />}
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={async () => {
                                                     const ok = await saveProgramChanges();
                                                     if (ok) navigate("/programs");
                                                 }}
-                                                className="px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold"
+                                                variant="primary"
+                                                icon={<CheckIcon size={18} />}
+                                                className="px-6 py-3 font-semibold"
                                             >
                                                 Save and Finish
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
@@ -1003,7 +1008,7 @@ export default function WorkoutProgram() {
                             You have unsaved changes to this program. Save before creating a new program, or discard and continue?
                         </p>
                         <div className="flex flex-col gap-3">
-                            <button
+                            <Button
                                 type="button"
                                 onClick={async () => {
                                     const ok = await saveProgramChanges();
@@ -1013,11 +1018,14 @@ export default function WorkoutProgram() {
                                         navigate(location.pathname, { replace: true, state: {} });
                                     }
                                 }}
-                                className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-medium"
+                                variant="primary"
+                                icon={<CheckIcon size={18} />}
+                                fullWidth
+                                className="font-medium"
                             >
                                 Save, then create new program
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={async () => {
                                     const programId = currentProgram?.id;
@@ -1027,17 +1035,21 @@ export default function WorkoutProgram() {
                                     if (programId) await revertProgramToSaved(programId);
                                     startNewProgram();
                                 }}
-                                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition font-medium"
+                                variant="secondary"
+                                fullWidth
+                                className="font-medium"
                             >
                                 Create new program without saving
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={() => setShowNewProgramConfirmModal(false)}
-                                className="w-full px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition font-medium"
+                                variant="secondary"
+                                fullWidth
+                                className="font-medium"
                             >
                                 Cancel
-                            </button>
+                            </Button>
                         </div>
                     </Modal>
 

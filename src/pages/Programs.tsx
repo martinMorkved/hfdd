@@ -6,8 +6,10 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PageLayout } from "../components/ui/PageLayout";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Button } from "../components/ui/Button";
 import { ProgramCard } from "../features/programs";
 import { getTotalExercises } from "../features/programs/utils";
+import { EditIcon, TrashIcon } from "../components/icons";
 
 export default function Programs() {
     const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();
@@ -25,11 +27,10 @@ export default function Programs() {
             <PageHeader
                 title="My Programs"
                 actions={
-                    <Link
-                        to="/program"
-                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium text-center inline-block"
-                    >
-                        Create New Program
+                    <Link to="/program" className="inline-block">
+                        <Button variant="primary" icon={<EditIcon size={18} />}>
+                            Create New Program
+                        </Button>
                     </Link>
                 }
             />
@@ -61,12 +62,12 @@ export default function Programs() {
                         </div>
                     </div>
 
-                    <button
+                    <Button
                         onClick={() => deactivateProgram()}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                        variant="danger"
                     >
                         Deactivate
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -75,11 +76,10 @@ export default function Programs() {
                     title="No programs created yet"
                     description="Start by creating your first workout program"
                     action={
-                        <Link
-                            to="/program"
-                            className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold inline-block"
-                        >
-                            Create Your First Program
+                        <Link to="/program" className="inline-block">
+                            <Button variant="primary" icon={<EditIcon size={18} />}>
+                                Create Your First Program
+                            </Button>
                         </Link>
                     }
                 />

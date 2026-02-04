@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageLayout } from '../components/ui/PageLayout';
@@ -10,7 +11,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { TextInput } from '../components/ui/TextInput';
 import { Checkbox } from '../components/ui/Checkbox';
 import { ExerciseHistoryButton } from '../features/exercises';
-import { EditIcon } from '../components/icons';
+import { EditIcon, CheckIcon } from '../components/icons';
 
 interface WorkoutSession {
     id: string;
@@ -518,18 +519,21 @@ export default function WorkoutHistory() {
                                     >
                                         Edit Name
                                     </button>
-                                    <button
+                                    <Button
                                         onClick={startEditingSession}
-                                        className="px-3 py-1 bg-cyan-600 text-white rounded text-sm hover:bg-cyan-700 transition"
+                                        variant="primary"
+                                        icon={<EditIcon size={16} />}
+                                        className="px-3 py-1 text-sm"
                                     >
                                         Edit Workout
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={() => handleDeleteSession(selectedSession)}
-                                        className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
+                                        variant="danger"
+                                        className="px-3 py-1 text-sm"
                                     >
                                         Delete
-                                    </button>
+                                    </Button>
                                     <div className="text-right">
                                         <div className="text-sm text-gray-400">Session Type</div>
                                         <div className="text-white font-semibold">
@@ -628,19 +632,22 @@ export default function WorkoutHistory() {
                         autoFocus
                     />
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             onClick={() => setShowEditModal(false)}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleSaveEdit}
+                            variant="primary"
+                            icon={<CheckIcon size={18} />}
                             disabled={!editSessionName.trim() || editLoading}
-                            className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            fullWidth
                         >
                             {editLoading ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -731,12 +738,13 @@ export default function WorkoutHistory() {
 
                     {/* Action buttons */}
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             onClick={() => setShowSelectiveMergeModal(false)}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
+                        </Button>
                         {selectedSessionsForMerge.size === 0 && (
                             <div className="flex-1 px-4 py-2 bg-gray-600 text-gray-400 rounded-lg cursor-not-allowed">
                                 Select sessions first
@@ -775,12 +783,13 @@ export default function WorkoutHistory() {
                         ))}
                     </div>
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             onClick={() => setShowMergeModal(false)}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -807,19 +816,21 @@ export default function WorkoutHistory() {
                         </div>
                     )}
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             onClick={() => setShowDeleteModal(false)}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            variant="secondary"
+                            fullWidth
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={confirmDeleteSession}
+                            variant="danger"
                             disabled={deleteLoading}
-                            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            fullWidth
                         >
                             {deleteLoading ? 'Deleting...' : 'Delete'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
