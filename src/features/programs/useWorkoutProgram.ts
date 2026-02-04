@@ -884,6 +884,9 @@ export const useWorkoutProgram = () => {
 
     const deleteProgram = async (programId: string) => {
         try {
+            // Check if this is the active program before deleting
+            const wasActiveProgram = activeProgram?.id === programId;
+
             // Delete from database (cascade will handle weeks, days, exercises)
             const { error } = await supabase
                 .from('workout_programs')
@@ -895,6 +898,21 @@ export const useWorkoutProgram = () => {
                 return;
             }
 
+            // If the deleted program was the active program, remove it from user_active_program
+            if (wasActiveProgram && user) {
+                const { error: deactivateError } = await supabase
+                    .from('user_active_program')
+                    .delete()
+                    .eq('user_id', user.id);
+
+                if (deactivateError) {
+                    console.error('Error removing active program:', deactivateError);
+                } else {
+                    // Clear active program from local state
+                    setActiveProgram(null);
+                }
+            }
+
             // Remove from local state
             setPrograms(prev => prev.filter(p => p.id !== programId));
 
@@ -902,6 +920,11 @@ export const useWorkoutProgram = () => {
             if (currentProgram?.id === programId) {
                 setCurrentProgram(null);
                 setIsDirty(false);
+            }
+
+            // Reload active program to ensure it's still valid (in case it wasn't the deleted one)
+            if (!wasActiveProgram) {
+                await loadActiveProgram();
             }
         } catch (err) {
             console.error('Error deleting program:', err);
