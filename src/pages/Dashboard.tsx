@@ -38,12 +38,19 @@ export default function Dashboard() {
         }
     };
 
+    // Get display name from user metadata, fallback to email username
+    const displayName = user?.user_metadata?.display_name ||
+        user?.user_metadata?.name ||
+        user?.user_metadata?.full_name ||
+        user?.email?.split('@')[0] ||
+        'there';
+
     return (
         <PageLayout>
             {/* Welcome Header */}
             <div className="mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2 flex items-center gap-3">
-                    Welcome back, {user?.email?.split('@')[0]}!
+                    Welcome back, {displayName}!
                     <DumbbellIcon size={36} className="text-cyan-400 hidden sm:block" />
                 </h1>
                 <p className="text-gray-400 text-sm sm:text-lg">

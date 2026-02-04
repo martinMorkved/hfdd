@@ -9,6 +9,7 @@ export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [name, setName] = useState('');
     const [mode, setMode] = useState<AuthMode>('signIn');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,12 @@ export const Login: React.FC = () => {
 
         try {
             if (mode === 'signUp') {
-                const { error } = await signUp(email, password);
+                if (!name.trim()) {
+                    setError('Please enter your name');
+                    setLoading(false);
+                    return;
+                }
+                const { error } = await signUp(email, password, name.trim());
                 if (error) {
                     setError(error.message);
                 } else {
@@ -119,6 +125,25 @@ export const Login: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Name field - only for signUp */}
+                    {mode === 'signUp' && (
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                                Name
+                            </label>
+                            <TextInput
+                                id="name"
+                                type="text"
+                                variant="auth"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                className="px-4 py-2"
+                                placeholder="Enter your name"
+                            />
+                        </div>
+                    )}
+
                     {/* Email field - shown for signIn, signUp, forgotPassword */}
                     {mode !== 'resetPassword' && (
                         <div>
@@ -207,7 +232,12 @@ export const Login: React.FC = () => {
                     )}
                     {mode === 'signUp' && (
                         <button
-                            onClick={() => { setMode('signIn'); setError(null); setMessage(null); }}
+                            onClick={() => { 
+                                setMode('signIn'); 
+                                setError(null); 
+                                setMessage(null);
+                                setName('');
+                            }}
                             className="text-cyan-400 hover:text-cyan-300 text-sm"
                         >
                             Already have an account? Sign In
