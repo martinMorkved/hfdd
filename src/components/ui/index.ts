@@ -14,3 +14,4 @@ export { Select } from "./Select";
 export { StatCard } from "./StatCard";
 export { TextArea } from "./TextArea";
 export { TextInput } from "./TextInput";
+export { MobileExerciseSelector } from "../MobileExerciseSelector";

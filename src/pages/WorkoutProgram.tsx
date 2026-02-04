@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Modal, ConfirmationModal } from "../components/ui/Modal";
 import { MultiSelectFilter } from "../components/ui/MultiSelectFilter";
-import { Checkbox } from "../components/ui/Checkbox";
 import { TextInput } from "../components/ui/TextInput";
 import { TextArea } from "../components/ui/TextArea";
 import { RepInput } from "../components/ui/RepInput";
@@ -10,6 +9,7 @@ import { Select } from "../components/ui/Select";
 import { supabase } from "../lib/supabase";
 import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
+import { MobileExerciseSelector } from "../components/MobileExerciseSelector";
 import type { Exercise } from "../features/exercises/types";
 import { useWorkoutProgram, type ProgramStructure } from "../features/programs/useWorkoutProgram";
 import { useExerciseManagement } from "../features/programs/useExerciseManagement";
@@ -919,112 +919,35 @@ export default function WorkoutProgram() {
                             </Modal>
 
                             {/* Add exercise full-screen (mobile): checkboxes + fixed Done */}
-                            {isMobile && addExerciseTarget !== null && (
-                                <div className="fixed inset-0 z-50 bg-gray-800 flex flex-col">
-                                    <div className="flex items-center justify-between p-4 border-b border-gray-700 shrink-0">
-                                        <h3 className="text-lg font-bold text-white">
-                                            Add exercise to {addExerciseTarget.dayName}
-                                        </h3>
-                                        <button
-                                            type="button"
-                                            onClick={() => setAddExerciseTarget(null)}
-                                            className="text-gray-400 hover:text-white p-2"
-                                            aria-label="Close"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                                        <div className="p-4 shrink-0 space-y-4">
-                                            <TextInput
-                                                variant="search"
-                                                placeholder="Search exercises..."
-                                                value={searchTerm}
-                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                            />
-                                            <MultiSelectFilter
-                                                options={muscleGroups}
-                                                selected={selectedMuscleGroups}
-                                                onSelect={setSelectedMuscleGroups}
-                                                label="Filter by Muscle Group"
-                                            />
-                                        </div>
-                                        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2">
-                                            <div className="space-y-3">
-                                                {filteredExercises.map((exercise) => {
-                                                    const isChecked = addExerciseSelectedIds.has(exercise.id);
-                                                    const toggle = () => {
-                                                        setAddExerciseSelectedIds((prev) => {
-                                                            const next = new Set(prev);
-                                                            if (next.has(exercise.id)) next.delete(exercise.id);
-                                                            else next.add(exercise.id);
-                                                            return next;
-                                                        });
-                                                    };
-                                                    return (
-                                                        <div
-                                                            key={exercise.id}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            onClick={toggle}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "Enter" || e.key === " ") {
-                                                                    e.preventDefault();
-                                                                    toggle();
-                                                                }
-                                                            }}
-                                                            className="w-full text-left bg-gray-700 rounded-lg p-3 hover:bg-gray-600 transition cursor-pointer flex items-center gap-3"
-                                                        >
-                                                            <Checkbox
-                                                                checked={isChecked}
-                                                                onChange={toggle}
-                                                                ariaLabel={`Select ${exercise.name}`}
-                                                            />
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="font-medium text-white">{exercise.name}</div>
-                                                                {exercise.muscle_group && (
-                                                                    <div className="text-sm text-gray-300">{exercise.muscle_group}</div>
-                                                                )}
-                                                                {exercise.description && (
-                                                                    <div className="text-sm text-gray-400 mt-1">{exercise.description}</div>
-                                                                )}
-                                                            </div>
-                                                            <span onClick={(e) => e.stopPropagation()}>
-                                                                <ExerciseHistoryButton
-                                                                    exerciseId={exercise.id}
-                                                                    exerciseName={exercise.name}
-                                                                    variant="icon"
-                                                                    className="shrink-0"
-                                                                />
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="shrink-0 p-4 border-t border-gray-700">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (addExerciseTarget && addExerciseSelectedIds.size > 0) {
-                                                    const order = filteredExercises.map((e) => e.id);
-                                                    const toAdd = order
-                                                        .filter((id) => addExerciseSelectedIds.has(id))
-                                                        .map((id) => filteredExercises.find((e) => e.id === id))
-                                                        .filter((ex): ex is Exercise => ex != null);
-                                                    addExercisesToDay(toAdd, addExerciseTarget.weekNumber, addExerciseTarget.dayName);
-                                                }
-                                                setAddExerciseTarget(null);
-                                                setAddExerciseSelectedIds(new Set());
-                                            }}
-                                            className="w-full py-3 bg-cyan-600 text-white rounded-lg font-semibold hover:bg-cyan-700 transition"
-                                        >
-                                            Done
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <MobileExerciseSelector
+                                isOpen={isMobile && addExerciseTarget !== null}
+                                onClose={() => {
+                                    setAddExerciseTarget(null);
+                                    setAddExerciseSelectedIds(new Set());
+                                }}
+                                title={addExerciseTarget ? `Add exercise to ${addExerciseTarget.dayName}` : "Add exercises"}
+                                exercises={exercises}
+                                filteredExercises={filteredExercises}
+                                searchTerm={searchTerm}
+                                onSearchChange={setSearchTerm}
+                                selectedMuscleGroups={selectedMuscleGroups}
+                                onMuscleGroupChange={setSelectedMuscleGroups}
+                                muscleGroups={muscleGroups}
+                                selectedExerciseIds={addExerciseSelectedIds}
+                                onSelectionChange={setAddExerciseSelectedIds}
+                                onDone={() => {
+                                    if (addExerciseTarget && addExerciseSelectedIds.size > 0) {
+                                        const order = filteredExercises.map((e) => e.id);
+                                        const toAdd = order
+                                            .filter((id) => addExerciseSelectedIds.has(id))
+                                            .map((id) => filteredExercises.find((e) => e.id === id))
+                                            .filter((ex): ex is Exercise => ex != null);
+                                        addExercisesToDay(toAdd, addExerciseTarget.weekNumber, addExerciseTarget.dayName);
+                                    }
+                                    setAddExerciseTarget(null);
+                                    setAddExerciseSelectedIds(new Set());
+                                }}
+                            />
                         </div>
                     </div>
 
