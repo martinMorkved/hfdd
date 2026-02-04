@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { TextInput } from '../../components/ui/TextInput';
+import { Button } from '../../components/ui/Button';
 
 type AuthMode = 'signIn' | 'signUp' | 'forgotPassword' | 'resetPassword';
 
@@ -123,13 +125,14 @@ export const Login: React.FC = () => {
                             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                                 Email
                             </label>
-                            <input
+                            <TextInput
                                 id="email"
                                 type="email"
+                                variant="auth"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                                className="px-4 py-2"
                                 placeholder="Enter your email"
                             />
                         </div>
@@ -141,13 +144,14 @@ export const Login: React.FC = () => {
                             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                                 {mode === 'resetPassword' ? 'New Password' : 'Password'}
                             </label>
-                            <input
+                            <TextInput
                                 id="password"
                                 type="password"
+                                variant="auth"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                                className="px-4 py-2"
                                 placeholder={mode === 'resetPassword' ? 'Enter new password' : 'Enter your password'}
                             />
                         </div>
@@ -159,25 +163,28 @@ export const Login: React.FC = () => {
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
                                 Confirm New Password
                             </label>
-                            <input
+                            <TextInput
                                 id="confirmPassword"
                                 type="password"
+                                variant="auth"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
-                                className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                                className="px-4 py-2"
                                 placeholder="Confirm new password"
                             />
                         </div>
                     )}
 
-                    <button
+                    <Button
                         type="submit"
+                        variant="primary"
                         disabled={loading}
-                        className="w-full px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        fullWidth
+                        className="px-6 py-3 font-semibold"
                     >
                         {getButtonText()}
-                    </button>
+                    </Button>
                 </form>
 
                 {/* Navigation links */}

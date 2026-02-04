@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Exercise } from "../exercises/types";
@@ -53,6 +53,7 @@ export const useWorkoutProgram = () => {
     const [programDescription, setProgramDescription] = useState("");
     const [programStructure, setProgramStructure] = useState<ProgramStructure>("weekly");
     const [loading, setLoading] = useState(true);
+    const [isDirty, setIsDirty] = useState(false);
 
     // Load programs from database
     useEffect(() => {
@@ -272,6 +273,7 @@ export const useWorkoutProgram = () => {
             setProgramName("");
             setProgramDescription("");
             setProgramStructure("weekly");
+            setIsDirty(false);
         } catch (err) {
             console.error('Error creating program:', err);
         }
@@ -279,6 +281,7 @@ export const useWorkoutProgram = () => {
 
     // Update program (name, description, structure) locally only. Persisted when user clicks Save or Save and Finish.
     const updateProgramInArray = (updatedProgram: WorkoutProgram) => {
+        setIsDirty(true);
         setPrograms(prev => prev.map(p => p.id === updatedProgram.id ? updatedProgram : p));
         if (currentProgram?.id === updatedProgram.id) {
             setCurrentProgram(updatedProgram);
@@ -320,6 +323,47 @@ export const useWorkoutProgram = () => {
                     : w
             )
         };
+        setIsDirty(true);
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
+    };
+
+    // Add multiple exercises to a day in one update (for mobile multi-select). Persisted when user clicks Save or Save and Finish.
+    const addExercisesToDay = (exercises: Exercise[], weekNumber: number, dayName: string) => {
+        if (!currentProgram || exercises.length === 0) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        if (!week) return;
+
+        const day = week.days.find(d => d.name === dayName);
+        if (!day) return;
+
+        const newWorkoutExercises: WorkoutExercise[] = exercises.map((exercise) => ({
+            id: nextTempId(),
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            sets: 3,
+            reps: [10, 10, 10],
+            comment: undefined,
+            alternatives: []
+        }));
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? {
+                        ...w,
+                        days: w.days.map(d =>
+                            d.name === dayName
+                                ? { ...d, exercises: [...d.exercises, ...newWorkoutExercises] }
+                                : d
+                        )
+                    }
+                    : w
+            )
+        };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
@@ -349,6 +393,7 @@ export const useWorkoutProgram = () => {
             )
         };
 
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
@@ -498,6 +543,7 @@ export const useWorkoutProgram = () => {
             const updatedProgram = await loadCompleteProgram(currentProgram.id);
             setCurrentProgram(updatedProgram);
             setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
+            setIsDirty(false);
             return true;
         } catch (err) {
             console.error('Error saving program changes:', err);
@@ -508,6 +554,7 @@ export const useWorkoutProgram = () => {
     // Move exercise up or down within a day (local only). Persisted when user clicks Save or Save and Finish.
     const moveExerciseInDay = (weekNumber: number, dayName: string, workoutExerciseId: string, direction: 'up' | 'down') => {
         if (!currentProgram) return;
+        setIsDirty(true);
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
         if (!week) return;
@@ -544,6 +591,7 @@ export const useWorkoutProgram = () => {
     // Reorder exercise within a day by moving to insertIndex (0-based, "before this position"). Used for drag-and-drop reorder.
     const reorderExerciseInDay = (weekNumber: number, dayName: string, workoutExerciseId: string, insertIndex: number) => {
         if (!currentProgram) return;
+        setIsDirty(true);
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
         if (!week) return;
@@ -577,8 +625,8 @@ export const useWorkoutProgram = () => {
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
 
-    // Remove exercise from day (local only). Persisted when user clicks Save or Save and Finish.
-    const removeExerciseFromDay = (weekNumber: number, dayName: string, exerciseId: string) => {
+    // Remove exercise from day by workout exercise instance id (local only). Persisted when user clicks Save or Save and Finish.
+    const removeExerciseFromDay = (weekNumber: number, dayName: string, workoutExerciseId: string) => {
         if (!currentProgram) return;
 
         const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
@@ -595,13 +643,14 @@ export const useWorkoutProgram = () => {
                         ...w,
                         days: w.days.map(d =>
                             d.name === dayName
-                                ? { ...d, exercises: d.exercises.filter(e => e.exerciseId !== exerciseId) }
+                                ? { ...d, exercises: d.exercises.filter(e => e.id !== workoutExerciseId) }
                                 : d
                         )
                     }
                     : w
             )
         };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
@@ -655,6 +704,7 @@ export const useWorkoutProgram = () => {
             ...currentProgram,
             weeks: [...currentProgram.weeks, newWeek]
         };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => p.id === currentProgram.id ? updatedProgram : p));
     };
@@ -707,6 +757,7 @@ export const useWorkoutProgram = () => {
             ...currentProgram,
             weeks: currentProgram.weeks.filter(w => w.weekNumber !== weekNumber)
         };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
@@ -726,6 +777,7 @@ export const useWorkoutProgram = () => {
                     : w
             )
         };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
@@ -749,12 +801,29 @@ export const useWorkoutProgram = () => {
                     : w
             )
         };
+        setIsDirty(true);
         setCurrentProgram(updatedProgram);
         setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
     };
 
-    const selectProgram = (program: WorkoutProgram) => {
+    const selectProgram = useCallback((program: WorkoutProgram) => {
         setCurrentProgram(program);
+        setIsDirty(false);
+    }, []);
+
+    const startNewProgram = useCallback(() => {
+        setCurrentProgram(null);
+        setIsDirty(false);
+    }, []);
+
+    // Reload a program from the DB and replace it in the programs list. Use when discarding unsaved changes so the list shows the saved version.
+    const revertProgramToSaved = async (programId: string) => {
+        try {
+            const saved = await loadCompleteProgram(programId);
+            setPrograms(prev => prev.map(p => (p.id === programId ? saved : p)));
+        } catch (err) {
+            console.error('Error reverting program to saved:', err);
+        }
     };
 
     const activateProgram = async (programId: string) => {
@@ -832,6 +901,7 @@ export const useWorkoutProgram = () => {
             // If the deleted program was the current program, clear it
             if (currentProgram?.id === programId) {
                 setCurrentProgram(null);
+                setIsDirty(false);
             }
         } catch (err) {
             console.error('Error deleting program:', err);
@@ -842,6 +912,9 @@ export const useWorkoutProgram = () => {
         programs,
         currentProgram,
         setCurrentProgram,
+        isDirty,
+        startNewProgram,
+        revertProgramToSaved,
         activeProgram,
         programName,
         setProgramName,
@@ -852,6 +925,7 @@ export const useWorkoutProgram = () => {
         createNewProgram,
         updateProgramInArray,
         addExerciseToDay,
+        addExercisesToDay,
         updateExerciseLocal,
         moveExerciseInDay,
         reorderExerciseInDay,

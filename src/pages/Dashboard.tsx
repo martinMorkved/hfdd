@@ -4,6 +4,8 @@ import { useWorkoutProgram } from "../features/programs/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
 import { Modal } from "../components/ui/Modal";
 import { StatCard } from "../components/ui/StatCard";
+import { Card } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
 import { PageLayout } from "../components/ui/PageLayout";
 import { getTotalExercises } from "../features/programs/utils";
 import {
@@ -49,161 +51,134 @@ export default function Dashboard() {
                 </p>
             </div>
 
-            {/* Log Workout Section - Always Available */}
+            {/* Unified Workout & Program Section */}
             <div className="mb-6 sm:mb-8">
-                <div className="bg-gradient-to-r from-green-900 to-emerald-900 rounded-lg border border-green-500 p-4 sm:p-6">
-                    <span className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-3">
-                        LOG WORKOUT
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Log Your Workout</h2>
-                    <p className="text-green-200 text-sm mb-4 sm:mb-6">
+                <Card title="Log Your Workout" titleIcon={<ClipboardIcon size={28} />}>
+                    <p className="text-gray-400 text-sm mb-4 sm:mb-6">
                         Track your workout session and build your fitness journey!
                     </p>
-                    <button
+                    <Button
                         onClick={handleLogWorkout}
-                        className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-2"
+                        variant="success"
+                        className="w-full sm:w-auto"
                     >
-                        <ClipboardIcon size={18} />
                         Log Workout
-                    </button>
-                </div>
-            </div>
+                    </Button>
 
-            {/* Active Program Section */}
-            {activeProgram ? (
-                <div className="mb-6 sm:mb-8">
-                    <div className="bg-gradient-to-r from-cyan-900 to-blue-900 rounded-lg border border-cyan-500 p-4 sm:p-6">
-                        <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full mb-3">
-                            ACTIVE PROGRAM
-                        </span>
-                        <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{activeProgram.name}</h2>
+                    {/* Divider */}
+                    <div className="border-t border-gray-700 my-6"></div>
 
-                        {activeProgram.description && (
-                            <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6 text-sm text-cyan-200">
-                            <div className="flex items-center gap-2">
-                                <span className="text-cyan-400">•</span>
-                                <span>{activeProgram.weeks.length} weeks</span>
+                    {/* Program Status Section - Bottom */}
+                    {activeProgram ? (
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-gray-400 text-sm font-semibold">Active Program:</span>
+                                <span className="text-white font-bold">{activeProgram.name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-cyan-400">•</span>
-                                <span>{activeProgram.weeks[0]?.days.length || 0} days/week</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-cyan-400">•</span>
-                                <span>{getTotalExercises(activeProgram)} exercises</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-cyan-400">•</span>
-                                <span className="truncate">{activeProgram.structure === 'rotating' ? 'Rotating' : activeProgram.structure}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <Link
-                                to="/program"
-                                state={{ selectedProgramId: activeProgram.id }}
-                                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium flex items-center justify-center gap-2"
-                            >
-                                <EditIcon size={18} />
-                                Edit Program
-                            </Link>
-                            <Link
-                                to="/programs"
-                                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium flex items-center justify-center gap-2"
-                            >
-                                <ClipboardIcon size={18} />
-                                Manage Programs
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="mb-8">
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                        <div className="text-center">
-                            <h2 className="text-xl font-bold text-white mb-2">No Active Program</h2>
-                            <p className="text-gray-400 mb-4">
-                                You don't have an active workout program yet. Create one or activate an existing program to get started!
-                            </p>
-                            <div className="flex gap-4 justify-center">
+                            {activeProgram.description && (
+                                <p className="text-gray-400 text-sm mb-4">{activeProgram.description}</p>
+                            )}
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Link
+                                    to="/program"
+                                    state={{ selectedProgramId: activeProgram.id }}
+                                    className="inline-block"
+                                >
+                                    <Button variant="primary">
+                                        Continue Program
+                                    </Button>
+                                </Link>
                                 <Link
                                     to="/programs"
-                                    className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold"
+                                    className="inline-block"
                                 >
-                                    View Programs
+                                    <Button variant="secondary">
+                                        Manage Programs
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <p className="text-gray-400 text-sm mb-4">
+                                You don't have an active workout program yet. Create one or activate an existing program to get started!
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Link
+                                    to="/programs"
+                                    className="inline-block"
+                                >
+                                    <Button variant="primary">
+                                        View Programs
+                                    </Button>
                                 </Link>
                                 <Link
                                     to="/program"
-                                    className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold"
+                                    className="inline-block"
                                 >
-                                    Create New Program
+                                    <Button variant="secondary">
+                                        Create New Program
+                                    </Button>
                                 </Link>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    )}
+                </Card>
+            </div>
 
             {/* Quick Actions Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {/* Exercise Library */}
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                        <DumbbellIcon size={28} className="text-cyan-400" />
-                        <h3 className="text-xl font-bold text-white">Exercise Library</h3>
-                    </div>
+                <Card
+                    title="Exercise Library"
+                    titleIcon={<DumbbellIcon size={28} />}
+                    className="hover:border-cyan-500 transition-colors"
+                >
                     <p className="text-gray-400 text-sm mb-4">
                         Browse and manage your exercise database. Add new exercises or edit existing ones.
                     </p>
-                    <Link
-                        to="/exercises"
-                        className="inline-block px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium"
-                    >
-                        Browse Exercises
+                    <Link to="/exercises" className="inline-block">
+                        <Button variant="primary">
+                            Browse Exercises
+                        </Button>
                     </Link>
-                </div>
+                </Card>
 
                 {/* Programs */}
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                        <CalendarIcon size={28} className="text-cyan-400" />
-                        <h3 className="text-xl font-bold text-white">Programs</h3>
-                    </div>
+                <Card
+                    title="Programs"
+                    titleIcon={<CalendarIcon size={28} />}
+                    className="hover:border-cyan-500 transition-colors"
+                >
                     <p className="text-gray-400 text-sm mb-4">
                         Create and manage your workout programs. Build structured training plans.
                     </p>
-                    <Link
-                        to="/programs"
-                        className="inline-block px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium"
-                    >
-                        Manage Programs
+                    <Link to="/programs" className="inline-block">
+                        <Button variant="primary">
+                            Manage Programs
+                        </Button>
                     </Link>
-                </div>
+                </Card>
 
                 {/* Workout History */}
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-cyan-500 transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                        <ChartIcon size={28} className="text-cyan-400" />
-                        <h3 className="text-xl font-bold text-white">Workout History</h3>
-                    </div>
+                <Card
+                    title="Workout History"
+                    titleIcon={<ChartIcon size={28} />}
+                    className="hover:border-cyan-500 transition-colors"
+                >
                     <p className="text-gray-400 text-sm mb-4">
                         View your past workouts and track your progress over time.
                     </p>
-                    <Link
-                        to="/history"
-                        className="inline-block px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-medium"
-                    >
-                        View History
+                    <Link to="/history" className="inline-block">
+                        <Button variant="primary">
+                            View History
+                        </Button>
                     </Link>
-                </div>
+                </Card>
             </div>
 
             {/* Recent Activity or Quick Stats */}
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <h3 className="text-xl font-bold text-white mb-4">Quick Stats</h3>
+            <Card title="Quick Stats">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard label="Total Programs" value={programs.length} />
                     <StatCard
@@ -216,7 +191,7 @@ export default function Dashboard() {
                     />
                     <StatCard label="Workouts This Week" value={0} />
                 </div>
-            </div>
+            </Card>
 
             {/* Log Workout Modal */}
             <Modal
@@ -234,20 +209,21 @@ export default function Dashboard() {
                             How would you like to log your workout?
                         </p>
                         <div className="space-y-3">
-                            <button
+                            <Button
                                 onClick={() => handleLogChoice('program')}
-                                className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
+                                variant="primary"
+                                icon={<ClipboardIcon size={20} />}
+                                fullWidth
                             >
-                                <ClipboardIcon size={20} />
                                 Log from Program
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={() => handleLogChoice('freeform')}
-                                className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-semibold flex items-center gap-3"
+                                variant="secondary"
+                                fullWidth
                             >
-                                <EditIcon size={20} />
                                 Free-form Workout
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 ) : (
@@ -259,20 +235,22 @@ export default function Dashboard() {
                             How would you like to proceed?
                         </p>
                         <div className="space-y-3">
-                            <button
+                            <Button
                                 onClick={() => handleLogChoice('freeform')}
-                                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-3"
+                                variant="success"
+                                icon={<EditIcon size={20} />}
+                                fullWidth
                             >
-                                <EditIcon size={20} />
                                 Log Free-form Workout
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={() => handleLogChoice('picker')}
-                                className="w-full px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center gap-3"
+                                variant="primary"
+                                icon={<CalendarIcon size={20} />}
+                                fullWidth
                             >
-                                <CalendarIcon size={20} />
                                 Choose a Program
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}

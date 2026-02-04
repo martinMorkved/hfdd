@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
-import { InfoIcon } from "../../components/icons";
+import { InfoIcon, EditIcon } from "../../components/icons";
 import { getStructureLabel, getTotalExercises } from "./utils";
 
 interface Program {
@@ -77,9 +77,11 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({
                 <Link
                     to="/program"
                     state={{ selectedProgramId: program.id }}
-                    className="px-3 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-center text-sm font-medium"
+                    className="inline-block"
                 >
-                    Edit Program
+                    <Button variant="primary" icon={<EditIcon size={18} />}>
+                        Edit Program
+                    </Button>
                 </Link>
                 {isActive ? (
                     <Button variant="success" disabled>

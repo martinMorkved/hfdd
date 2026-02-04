@@ -31,6 +31,9 @@ export const Button: React.FC<ButtonProps> = ({
         "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed";
     const variantClass = variantClasses[variant];
     const widthClass = fullWidth ? "w-full" : "";
+    
+    // Primary buttons should show icons when provided, secondary buttons should not show icons
+    const shouldShowIcon = variant === "primary" && icon !== undefined;
 
     return (
         <button
@@ -39,7 +42,7 @@ export const Button: React.FC<ButtonProps> = ({
             disabled={disabled}
             {...rest}
         >
-            {icon}
+            {shouldShowIcon && icon}
             {children}
         </button>
     );

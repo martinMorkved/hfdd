@@ -210,7 +210,7 @@ export function useWorkoutLogging() {
         if (!currentSession) throw new Error('No active session');
 
         const newExercise: WorkoutExercise = {
-            id: `temp-ex-${Date.now()}`,
+            id: `temp-ex-${Date.now()}-${Math.random().toString(36).slice(2)}`,
             exercise_id: exerciseId,
             exercise_name: exerciseName,
             sets,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { TextInput } from "../../components/ui/TextInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { supabase } from "../../lib/supabase";
@@ -44,14 +45,20 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
         }
     };
 
-    // Compute unique muscle groups
-    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
+    // Compute unique muscle groups (handle comma-separated values)
+    const muscleGroups = Array.from(new Set(
+        exercises
+            .flatMap(ex => {
+                if (!ex.muscle_group) return [];
+                return ex.muscle_group.split(',').map(g => g.trim()).filter(Boolean);
+            })
+    )) as string[];
 
     // Filter exercises by selected groups and search term, then dedupe
     const filteredExercises = (() => {
         const filtered = exercises.filter(ex => {
             const matchesGroup = selectedGroups.length === 0 ||
-                (ex.muscle_group && selectedGroups.includes(ex.muscle_group));
+                (ex.muscle_group && ex.muscle_group.split(',').map(g => g.trim()).some(group => selectedGroups.includes(group)));
             const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
             return matchesGroup && matchesSearch;
@@ -85,12 +92,11 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
 
             {/* Search Bar */}
             <div className="mb-6">
-                <input
-                    type="text"
+                <TextInput
                     placeholder="Search exercises..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full border border-gray-400 rounded-lg px-4 py-3 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                    className="px-4 py-3"
                 />
             </div>
 
@@ -135,7 +141,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onExerciseSe
                                     <div className="flex-1">
                                         <div className="font-semibold text-white text-lg">{ex.name}</div>
                                         {ex.muscle_group && (
-                                            <div className="text-sm text-cyan-400 mt-1">{ex.muscle_group}</div>
+                                            <div className="text-sm text-cyan-400 mt-1">
+                                                {ex.muscle_group.split(',').map(g => g.trim()).join(', ')}
+                                            </div>
                                         )}
                                         {ex.description && (
                                             <div className="text-gray-300 text-sm mt-1">{ex.description}</div>

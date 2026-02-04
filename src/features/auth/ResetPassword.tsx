@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { TextInput } from '../../components/ui/TextInput';
+import { Button } from '../../components/ui/Button';
 
 export const ResetPassword: React.FC = () => {
     const [password, setPassword] = useState('');
@@ -70,13 +72,14 @@ export const ResetPassword: React.FC = () => {
                         <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                             New Password
                         </label>
-                        <input
+                        <TextInput
                             id="password"
                             type="password"
+                            variant="auth"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                            className="px-4 py-2"
                             placeholder="Enter new password"
                         />
                     </div>
@@ -85,24 +88,27 @@ export const ResetPassword: React.FC = () => {
                         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
                             Confirm New Password
                         </label>
-                        <input
+                        <TextInput
                             id="confirmPassword"
                             type="password"
+                            variant="auth"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            className="w-full border border-gray-600 rounded-lg px-4 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
+                            className="px-4 py-2"
                             placeholder="Confirm new password"
                         />
                     </div>
 
-                    <button
+                    <Button
                         type="submit"
+                        variant="primary"
                         disabled={loading}
-                        className="w-full px-6 py-3 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        fullWidth
+                        className="px-6 py-3 font-semibold"
                     >
                         {loading ? 'Updating...' : 'Update Password'}
-                    </button>
+                    </Button>
                 </form>
             </div>
         </div>

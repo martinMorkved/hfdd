@@ -1,5 +1,6 @@
 import React from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { TextInput } from "../../components/ui/TextInput";
 import { ExerciseHistoryButton } from "../exercises/ExerciseHistoryButton";
 import type { Exercise } from "../exercises/types";
 
@@ -44,12 +45,11 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
 
                 {/* Search Input */}
                 <div className="mb-4">
-                    <input
-                        type="text"
+                    <TextInput
+                        variant="search"
                         placeholder="Search exercises..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full border border-gray-600 rounded-lg px-3 py-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400"
                     />
                 </div>
 
