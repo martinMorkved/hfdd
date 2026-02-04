@@ -27,7 +27,6 @@ export const MobileExerciseSelector: React.FC<MobileExerciseSelectorProps> = ({
     isOpen,
     onClose,
     title,
-    exercises,
     filteredExercises,
     searchTerm,
     onSearchChange,

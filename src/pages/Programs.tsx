@@ -9,7 +9,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
 import { ProgramCard } from "../features/programs";
 import { getTotalExercises } from "../features/programs/utils";
-import { EditIcon, TrashIcon } from "../components/icons";
+import { EditIcon } from "../components/icons";
 
 export default function Programs() {
     const { programs, loading, deleteProgram, activeProgram, activateProgram, deactivateProgram } = useWorkoutProgram();

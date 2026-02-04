@@ -15,7 +15,7 @@ import { ExerciseSelector, ExerciseHistoryButton } from '../features/exercises';
 import { MobileExerciseSelector } from '../components/MobileExerciseSelector';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../features/exercises/types';
-import { PlusIcon, CheckIcon, XIcon, CalendarIcon } from '../components/icons';
+import { PlusIcon, CheckIcon, CalendarIcon } from '../components/icons';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
