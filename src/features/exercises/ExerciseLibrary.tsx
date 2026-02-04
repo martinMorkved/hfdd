@@ -4,6 +4,7 @@ import { MuscleGroupAutocomplete } from "../../components/ui/MuscleGroupAutocomp
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { TextInput } from "../../components/ui/TextInput";
+import { ConfirmationModal } from "../../components/ui/Modal";
 import { supabase } from "../../lib/supabase";
 import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,6 +19,7 @@ export const ExerciseLibrary: React.FC = () => {
     const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
 
     // Load exercises from Supabase on component mount
     useEffect(() => {
@@ -110,24 +112,33 @@ export const ExerciseLibrary: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleDeleteClick = (id: string, name: string) => {
+        setExerciseToDelete({ id, name });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!exerciseToDelete) return;
+
         try {
             const { error } = await supabase
                 .from('exercises')
                 .delete()
-                .eq('id', id);
+                .eq('id', exerciseToDelete.id);
 
             if (error) {
                 console.error('Error deleting exercise:', error);
                 setError('Failed to delete exercise');
+                setExerciseToDelete(null);
                 return;
             }
 
-            setExercises(exercises.filter(ex => ex.id !== id));
+            setExercises(exercises.filter(ex => ex.id !== exerciseToDelete.id));
             setError(null);
+            setExerciseToDelete(null);
         } catch (err) {
             console.error('Error deleting exercise:', err);
             setError('Failed to delete exercise');
+            setExerciseToDelete(null);
         }
     };
 
@@ -216,7 +227,7 @@ export const ExerciseLibrary: React.FC = () => {
                                             variant="icon"
                                         />
                                         <button
-                                            onClick={() => handleDelete(ex.id)}
+                                            onClick={() => handleDeleteClick(ex.id, ex.name)}
                                             disabled={loading}
                                             className="px-4 py-2 bg-red-600 text-white rounded-lg border border-red-500 hover:bg-red-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -232,6 +243,18 @@ export const ExerciseLibrary: React.FC = () => {
 
             {/* Exercise History Modal */}
             {/* The ExerciseHistoryButton component manages its own modal state */}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={exerciseToDelete !== null}
+                onClose={() => setExerciseToDelete(null)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Exercise"
+                message={`Are you sure you want to delete "${exerciseToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                confirmButtonStyle="bg-red-600 hover:bg-red-700"
+            />
         </div>
     );
 };
