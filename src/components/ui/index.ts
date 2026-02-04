@@ -15,3 +15,4 @@ export { StatCard } from "./StatCard";
 export { TextArea } from "./TextArea";
 export { TextInput } from "./TextInput";
 export { MobileExerciseSelector } from "../MobileExerciseSelector";
+export { MuscleGroupAutocomplete } from "./MuscleGroupAutocomplete";

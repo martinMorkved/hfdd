@@ -105,8 +105,14 @@ export default function WorkoutLogger() {
         }
     }, [showMobileAddExercise]);
 
-    // Get unique muscle groups
-    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
+    // Get unique muscle groups (handle comma-separated values)
+    const muscleGroups = Array.from(new Set(
+        exercises
+            .flatMap(ex => {
+                if (!ex.muscle_group) return [];
+                return ex.muscle_group.split(',').map(g => g.trim()).filter(Boolean);
+            })
+    )) as string[];
 
     // Filter exercises by search term and selected muscle groups
     const filteredExercises = exercises.filter(ex => {
@@ -115,7 +121,7 @@ export default function WorkoutLogger() {
             (ex.description && ex.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesMuscleGroup = selectedMuscleGroups.length === 0 ||
-            (ex.muscle_group && selectedMuscleGroups.includes(ex.muscle_group));
+            (ex.muscle_group && ex.muscle_group.split(',').map(g => g.trim()).some(group => selectedMuscleGroups.includes(group)));
 
         return matchesSearch && matchesMuscleGroup;
     });

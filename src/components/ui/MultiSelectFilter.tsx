@@ -11,6 +11,7 @@ export const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({
     options,
     selected,
     onSelect,
+    label,
 }) => {
     const handleToggle = (option: string) => {
         if (selected.includes(option)) {
@@ -25,24 +26,31 @@ export const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({
     };
 
     return (
-        <div className="flex flex-wrap gap-2 mb-6">
-            <button
-                data-filter="all"
-                className={`px-4 py-2 rounded-lg border text-white transition font-semibold ${selected.length === 0 ? "bg-cyan-600 border-cyan-500" : "bg-gray-800 border-gray-600 hover:bg-cyan-700"}`}
-                onClick={handleAll}
-            >
-                All
-            </button>
-            {options.map(option => (
+        <div>
+            {label && (
+                <div className="text-sm font-medium text-gray-300 mb-2">
+                    {label}
+                </div>
+            )}
+            <div className="flex flex-wrap gap-2 mb-6">
                 <button
-                    key={option}
-                    data-filter={option}
-                    className={`px-4 py-2 rounded-lg border text-white transition font-semibold ${selected.includes(option) ? "bg-cyan-600 border-cyan-500" : "bg-gray-800 border-gray-600 hover:bg-cyan-700"}`}
-                    onClick={() => handleToggle(option)}
+                    data-filter="all"
+                    className={`px-4 py-2 rounded-lg border text-white transition font-semibold ${selected.length === 0 ? "bg-cyan-600 border-cyan-500" : "bg-gray-800 border-gray-600 hover:bg-cyan-700"}`}
+                    onClick={handleAll}
                 >
-                    {option}
+                    All
                 </button>
-            ))}
+                {options.map(option => (
+                    <button
+                        key={option}
+                        data-filter={option}
+                        className={`px-4 py-2 rounded-lg border text-white transition font-semibold ${selected.includes(option) ? "bg-cyan-600 border-cyan-500" : "bg-gray-800 border-gray-600 hover:bg-cyan-700"}`}
+                        onClick={() => handleToggle(option)}
+                    >
+                        {option}
+                    </button>
+                ))}
+            </div>
         </div>
     );
 };

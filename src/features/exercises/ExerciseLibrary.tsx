@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MultiSelectFilter } from "../../components/ui/MultiSelectFilter";
+import { MuscleGroupAutocomplete } from "../../components/ui/MuscleGroupAutocomplete";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorMessage } from "../../components/ui/ErrorMessage";
 import { TextInput } from "../../components/ui/TextInput";
@@ -13,7 +14,7 @@ export const ExerciseLibrary: React.FC = () => {
     const [exercises, setExercises] = useState<Exercise[]>([]);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [muscleGroup, setMuscleGroup] = useState("");
+    const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
     const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,13 +47,23 @@ export const ExerciseLibrary: React.FC = () => {
         }
     };
 
-    // Compute unique muscle groups
-    const muscleGroups = Array.from(new Set(exercises.map(ex => ex.muscle_group).filter(Boolean))) as string[];
+    // Compute unique muscle groups (handle comma-separated values)
+    const muscleGroups = Array.from(new Set(
+        exercises
+            .flatMap(ex => {
+                if (!ex.muscle_group) return [];
+                return ex.muscle_group.split(',').map(g => g.trim()).filter(Boolean);
+            })
+    )) as string[];
 
     // Filter exercises by selected groups and dedupe by ID
     const filteredExercises = (() => {
         const filtered = selectedGroups.length > 0
-            ? exercises.filter(ex => ex.muscle_group && selectedGroups.includes(ex.muscle_group))
+            ? exercises.filter(ex => {
+                if (!ex.muscle_group) return false;
+                const exerciseGroups = ex.muscle_group.split(',').map(g => g.trim());
+                return exerciseGroups.some(group => selectedGroups.includes(group));
+            })
             : exercises;
         // Deduplicate by ID to prevent React key warnings
         const seen = new Set<string>();
@@ -74,7 +85,7 @@ export const ExerciseLibrary: React.FC = () => {
                     {
                         name: name.trim(),
                         description: description.trim() || null,
-                        muscle_group: muscleGroup.trim() || null,
+                        muscle_group: selectedMuscleGroups.length > 0 ? selectedMuscleGroups.join(', ') : null,
                         user_id: user?.id || null
                     }
                 ])
@@ -90,7 +101,7 @@ export const ExerciseLibrary: React.FC = () => {
                 setExercises([data[0], ...exercises]);
                 setName("");
                 setDescription("");
-                setMuscleGroup("");
+                setSelectedMuscleGroups([]);
                 setError(null);
             }
         } catch (err) {
@@ -130,33 +141,35 @@ export const ExerciseLibrary: React.FC = () => {
 
                 {error && <ErrorMessage message={error} className="mb-6" />}
 
-                <form onSubmit={handleAddExercise} className="flex flex-row gap-4 mb-8 items-center">
+                <form onSubmit={handleAddExercise} className="flex flex-col md:flex-row gap-4 mb-8 md:items-center">
                     <TextInput
                         variant="search"
                         placeholder="Exercise name"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         required
-                        className="flex-1 px-4 py-2"
+                        className="w-full md:flex-1 px-4 py-2"
                     />
                     <TextInput
                         variant="search"
                         placeholder="Description"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
-                        className="flex-1 px-4 py-2"
+                        className="w-full md:flex-1 px-4 py-2"
                     />
-                    <TextInput
-                        variant="search"
-                        placeholder="Muscle group"
-                        value={muscleGroup}
-                        onChange={e => setMuscleGroup(e.target.value)}
-                        className="flex-1 px-4 py-2"
-                    />
+                    <div className="w-full md:flex-1">
+                        <MuscleGroupAutocomplete
+                            options={muscleGroups}
+                            selected={selectedMuscleGroups}
+                            onSelect={setSelectedMuscleGroups}
+                            label="Select Muscle Groups"
+                            placeholder="Type to add muscle groups..."
+                        />
+                    </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        className="ml-4 px-6 py-2 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full md:w-auto md:ml-4 px-6 py-2 bg-cyan-600 text-white rounded-lg border border-cyan-500 hover:bg-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? 'Adding...' : 'Add Exercise'}
                     </button>
@@ -180,7 +193,7 @@ export const ExerciseLibrary: React.FC = () => {
                             options={muscleGroups}
                             selected={selectedGroups}
                             onSelect={setSelectedGroups}
-                            label="Muscle Groups"
+                            label="Filter by Muscle Group"
                         />
                         <ul className="space-y-4">
                             {filteredExercises.map(ex => (
@@ -191,7 +204,11 @@ export const ExerciseLibrary: React.FC = () => {
                                 >
                                     <div className="flex-1 text-left">
                                         <strong className="text-lg text-white">{ex.name}</strong>
-                                        {ex.muscle_group && <span className="ml-2 text-sm text-gray-300">({ex.muscle_group})</span>}
+                                        {ex.muscle_group && (
+                                            <span className="ml-2 text-sm text-gray-300">
+                                                ({ex.muscle_group.split(',').map(g => g.trim()).join(', ')})
+                                            </span>
+                                        )}
                                         <div className="text-gray-200 text-sm mt-1">{ex.description}</div>
                                     </div>
                                     <div className="flex gap-2 mt-4 md:mt-0 md:ml-4">
