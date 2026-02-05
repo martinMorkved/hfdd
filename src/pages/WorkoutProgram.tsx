@@ -612,15 +612,16 @@ export default function WorkoutProgram() {
                                                                                         }
                                                                                     }}
                                                                                 >
-                                                                                    <div className="flex items-center justify-between mb-3">
-                                                                                        <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
-                                                                                        <div className="flex items-center gap-2">
+                                                                                    <div className="mb-3">
+                                                                                        {/* First row: Exercise name and up/down arrows */}
+                                                                                        <div className="flex items-center justify-between mb-3">
+                                                                                            <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
                                                                                             <div className="flex items-center rounded border border-gray-600 overflow-hidden">
                                                                                                 <button
                                                                                                     type="button"
                                                                                                     onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'up')}
                                                                                                     disabled={exerciseIndex === 0}
-                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    className="p-2 sm:p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                                                                                     title="Move up"
                                                                                                 >
                                                                                                     <ChevronUpIcon size={18} />
@@ -629,12 +630,15 @@ export default function WorkoutProgram() {
                                                                                                     type="button"
                                                                                                     onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'down')}
                                                                                                     disabled={exerciseIndex === day.exercises.length - 1}
-                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    className="p-2 sm:p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                                                                                     title="Move down"
                                                                                                 >
                                                                                                     <ChevronDownIcon size={18} />
                                                                                                 </button>
                                                                                             </div>
+                                                                                        </div>
+                                                                                        {/* Second row: Alternatives and Remove buttons */}
+                                                                                        <div className="flex items-center justify-end gap-3 sm:gap-2">
                                                                                             <ExerciseHistoryButton
                                                                                                 exerciseId={exercise.exerciseId}
                                                                                                 exerciseName={exercise.exerciseName}
@@ -642,14 +646,14 @@ export default function WorkoutProgram() {
                                                                                             />
                                                                                             <button
                                                                                                 onClick={() => openAlternativesModal(week.weekNumber, day.name, exercise.exerciseId)}
-                                                                                                className="text-cyan-400 hover:text-cyan-300 text-sm"
+                                                                                                className="text-cyan-400 hover:text-cyan-300 text-sm px-3 py-2 sm:px-0 sm:py-0 min-h-[44px] sm:min-h-0 flex items-center justify-center"
                                                                                             >
                                                                                                 Alternatives
                                                                                             </button>
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => removeExerciseFromDay(week.weekNumber, day.name, exercise.id)}
-                                                                                                className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                                                                className="text-sm px-4 py-2 sm:px-2 sm:py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition min-h-[44px] sm:min-h-0 flex items-center justify-center"
                                                                                             >
                                                                                                 Remove
                                                                                             </button>

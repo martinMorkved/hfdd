@@ -33,7 +33,8 @@ export default function WorkoutLogger() {
         updateExercise,
         removeExerciseFromSession,
         saveSession,
-        clearSession
+        clearSession,
+        swapExerciseAlternative
     } = useWorkoutLogging();
 
     const isProgramFlow = location.state?.sessionType === 'program';
@@ -204,7 +205,7 @@ export default function WorkoutLogger() {
         setShowSessionModal(true);
     };
 
-    const handleSelectProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[] }[]) => {
+    const handleSelectProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[]; alternatives?: string[] }[]) => {
         if (!activeProgram || !activeProgram.id || !activeProgram.name) {
             console.error('Cannot create session: active program is invalid', activeProgram);
             return;
@@ -213,7 +214,8 @@ export default function WorkoutLogger() {
             exercise_id: ex.exerciseId,
             exercise_name: ex.exerciseName,
             sets: ex.sets,
-            reps: ex.reps?.length ? ex.reps : [10, 10, 10]
+            reps: ex.reps?.length ? ex.reps : [10, 10, 10],
+            alternatives: ex.alternatives || []
         }));
         try {
             createProgramSession(activeProgram.id, activeProgram.name, weekNumber, dayName, mapped);
@@ -222,7 +224,7 @@ export default function WorkoutLogger() {
         }
     };
 
-    const handleChangeProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[] }[]) => {
+    const handleChangeProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[]; alternatives?: string[] }[]) => {
         if (!activeProgram || !currentSession) return;
 
         // Clear current session and create new one with the new day
@@ -231,7 +233,8 @@ export default function WorkoutLogger() {
             exercise_id: ex.exerciseId,
             exercise_name: ex.exerciseName,
             sets: ex.sets,
-            reps: ex.reps?.length ? ex.reps : [10, 10, 10]
+            reps: ex.reps?.length ? ex.reps : [10, 10, 10],
+            alternatives: ex.alternatives || []
         })));
 
         setShowChangeDayModal(false);
@@ -749,7 +752,14 @@ export default function WorkoutLogger() {
                             currentSession.exercises.map((exercise) => (
                                 <div key={exercise.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-xl font-bold text-white">{exercise.exercise_name}</h3>
+                                        <div className="flex-1">
+                                            <h3 className="text-xl font-bold text-white">{exercise.exercise_name}</h3>
+                                            {exercise.original_exercise_name && (
+                                                <p className="text-gray-400 text-sm mt-1">
+                                                    Swapped from: {exercise.original_exercise_name}
+                                                </p>
+                                            )}
+                                        </div>
                                         <div className="flex gap-2">
                                             <ExerciseHistoryButton
                                                 exerciseId={exercise.exercise_id}
@@ -764,6 +774,36 @@ export default function WorkoutLogger() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Alternatives */}
+                                    {exercise.alternatives && exercise.alternatives.length > 0 && (
+                                        <div className="mb-4">
+                                            <label className="block text-gray-400 text-sm mb-2">Alternatives:</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {/* Show original exercise if swapped */}
+                                                {exercise.original_exercise_name && (
+                                                    <button
+                                                        onClick={() => swapExerciseAlternative(exercise.id, exercise.original_exercise_name!)}
+                                                        className="px-3 py-2 bg-gray-600/20 border border-gray-500/50 text-gray-300 rounded-lg hover:bg-gray-600/30 transition text-sm"
+                                                    >
+                                                        Swap back to {exercise.original_exercise_name}
+                                                    </button>
+                                                )}
+                                                {/* Show alternatives (excluding current exercise) */}
+                                                {exercise.alternatives
+                                                    .filter(alt => alt !== exercise.exercise_name)
+                                                    .map((alt, index) => (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => swapExerciseAlternative(exercise.id, alt)}
+                                                            className="px-3 py-2 bg-cyan-600/20 border border-cyan-500/50 text-cyan-300 rounded-lg hover:bg-cyan-600/30 transition text-sm"
+                                                        >
+                                                            Swap to {alt}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
