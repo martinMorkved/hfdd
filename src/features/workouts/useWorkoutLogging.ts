@@ -171,16 +171,29 @@ export function useWorkoutLogging() {
 
     const createProgramSession = (
         programId: string,
-        programName: string,
         weekNumber: number,
         dayName: string,
-        dayExercises: ProgramDayExercise[]
+        dayExercises: ProgramDayExercise[],
+        totalWeeks?: number,
+        programStructure?: 'weekly' | 'rotating' | 'block' | 'frequency'
     ): string => {
         if (!user) throw new Error('User not authenticated');
 
         // Create session in memory only (saved to DB on "Finish Workout")
         const tempId = `temp-${Date.now()}`;
-        const sessionName = `${programName} – Week ${weekNumber} – ${dayName}`;
+        // Generate session name based on program structure
+        let sessionName: string;
+        if (programStructure === 'rotating' || programStructure === 'block') {
+            // Rotating and Block programs never show "Week", just the day name
+            // These are cyclical programs where the day name (Day A/B/C or Block 1/2/3) is sufficient
+            sessionName = dayName;
+        } else if (totalWeeks === 1) {
+            // Single-week programs: just show the day name
+            sessionName = dayName;
+        } else {
+            // Multi-week programs (weekly, frequency): show "Week X – Day Name"
+            sessionName = `Week ${weekNumber} – ${dayName}`;
+        }
         const sessionDate = new Date().toISOString().split('T')[0];
 
         const exercises: WorkoutExercise[] = dayExercises.map((ex, index) => ({

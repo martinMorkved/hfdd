@@ -218,7 +218,7 @@ export default function WorkoutLogger() {
             alternatives: ex.alternatives || []
         }));
         try {
-            createProgramSession(activeProgram.id, activeProgram.name, weekNumber, dayName, mapped);
+            createProgramSession(activeProgram.id, weekNumber, dayName, mapped, activeProgram.weeks.length, activeProgram.structure);
         } catch (error) {
             console.error('Error creating program session:', error);
         }
@@ -229,13 +229,13 @@ export default function WorkoutLogger() {
 
         // Clear current session and create new one with the new day
         clearSession();
-        createProgramSession(activeProgram.id, activeProgram.name, weekNumber, dayName, dayExercises.map((ex) => ({
+        createProgramSession(activeProgram.id, weekNumber, dayName, dayExercises.map((ex) => ({
             exercise_id: ex.exerciseId,
             exercise_name: ex.exerciseName,
             sets: ex.sets,
             reps: ex.reps?.length ? ex.reps : [10, 10, 10],
             alternatives: ex.alternatives || []
-        })));
+        })), activeProgram.weeks.length, activeProgram.structure);
 
         setShowChangeDayModal(false);
     };
