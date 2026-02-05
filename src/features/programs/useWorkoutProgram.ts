@@ -25,6 +25,7 @@ export type WorkoutDay = {
     id: string;
     name: string;
     exercises: WorkoutExercise[];
+    is_rest_day?: boolean;
 };
 
 export type WorkoutWeek = {
@@ -147,7 +148,7 @@ export const useWorkoutProgram = () => {
 
                 if (daysError) {
                     console.error('Error loading days:', daysError);
-                    return { id: week.id, weekNumber: week.week_number, days: [] };
+                    return { id: week.id, weekNumber: week.week_number, days: [] as WorkoutDay[] };
                 }
 
                 // Load exercises for each day
@@ -161,7 +162,7 @@ export const useWorkoutProgram = () => {
 
                         if (exercisesError) {
                             console.error('Error loading exercises:', exercisesError);
-                            return { id: day.id, name: day.name, exercises: [] };
+                            return { id: day.id, name: day.name, exercises: [], is_rest_day: day.is_rest_day ?? false };
                         }
 
                         const exercises: WorkoutExercise[] = (exercisesData || []).map(ex => ({
@@ -174,7 +175,7 @@ export const useWorkoutProgram = () => {
                             alternatives: ex.alternatives || []
                         }));
 
-                        return { id: day.id, name: day.name, exercises };
+                        return { id: day.id, name: day.name, exercises, is_rest_day: day.is_rest_day ?? false };
                     })
                 );
 
@@ -250,7 +251,8 @@ export const useWorkoutProgram = () => {
                 week_id: weekData.id,
                 name,
                 day_number: index + 1,
-                day_order: index + 1
+                day_order: index + 1,
+                is_rest_day: false
             }));
 
             const { error: daysError } = await supabase
@@ -457,7 +459,7 @@ export const useWorkoutProgram = () => {
                         // New day (temp id) – insert; never send temp id to DB
                         const { data: inserted, error } = await supabase
                             .from('workout_days')
-                            .insert([{ week_id: realWeekId, name: day.name, day_number: week.days.indexOf(day) + 1, day_order: week.days.indexOf(day) + 1 }])
+                            .insert([{ week_id: realWeekId, name: day.name, day_number: week.days.indexOf(day) + 1, day_order: week.days.indexOf(day) + 1, is_rest_day: day.is_rest_day ?? false }])
                             .select('id')
                             .single();
                         if (error || !inserted) {
@@ -466,8 +468,8 @@ export const useWorkoutProgram = () => {
                         }
                         tempToRealDay[day.id] = inserted.id;
                     } else if (typeof day.id === "string" && !day.id.startsWith("temp-")) {
-                        // Existing day (real UUID) – update name only; never use temp id in .eq()
-                        const { error } = await supabase.from('workout_days').update({ name: day.name }).eq('id', day.id);
+                        // Existing day (real UUID) – update name and is_rest_day
+                        const { error } = await supabase.from('workout_days').update({ name: day.name, is_rest_day: day.is_rest_day ?? false }).eq('id', day.id);
                         if (error) {
                             console.error('Error updating day name', day.id, error);
                             return false;
@@ -690,7 +692,8 @@ export const useWorkoutProgram = () => {
             return {
                 id: nextTempId(),
                 name,
-                exercises
+                exercises,
+                is_rest_day: dayCopy?.is_rest_day ?? false
             };
         });
 
@@ -736,7 +739,7 @@ export const useWorkoutProgram = () => {
             newDayName = `Extra ${extraIndex > 0 ? extraIndex : 1}`;
         }
 
-        const newDay: WorkoutDay = { id: nextTempId(), name: newDayName, exercises: [] };
+        const newDay: WorkoutDay = { id: nextTempId(), name: newDayName, exercises: [], is_rest_day: false };
         const updatedProgram: WorkoutProgram = {
             ...currentProgram,
             weeks: currentProgram.weeks.map(w =>
@@ -798,6 +801,26 @@ export const useWorkoutProgram = () => {
             weeks: currentProgram.weeks.map(w =>
                 w.weekNumber === weekNumber
                     ? { ...w, days: w.days.map(d => (d.id === dayId ? { ...d, name: trimmed } : d)) }
+                    : w
+            )
+        };
+        setIsDirty(true);
+        setCurrentProgram(updatedProgram);
+        setPrograms(prev => prev.map(p => (p.id === currentProgram.id ? updatedProgram : p)));
+    };
+
+    const setDayRestDay = (weekNumber: number, dayId: string, isRestDay: boolean) => {
+        if (!currentProgram) return;
+
+        const week = currentProgram.weeks.find(w => w.weekNumber === weekNumber);
+        const day = week?.days.find(d => d.id === dayId);
+        if (!week || !day) return;
+
+        const updatedProgram: WorkoutProgram = {
+            ...currentProgram,
+            weeks: currentProgram.weeks.map(w =>
+                w.weekNumber === weekNumber
+                    ? { ...w, days: w.days.map(d => (d.id === dayId ? { ...d, is_rest_day: isRestDay } : d)) }
                     : w
             )
         };
@@ -959,6 +982,7 @@ export const useWorkoutProgram = () => {
         removeWeek,
         removeDayFromWeek,
         updateDayName,
+        setDayRestDay,
         selectProgram,
         activateProgram,
         deactivateProgram,

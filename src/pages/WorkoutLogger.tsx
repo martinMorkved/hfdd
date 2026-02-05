@@ -525,7 +525,7 @@ export default function WorkoutLogger() {
                             <div key={week.id} className="bg-gray-800 rounded-lg p-3">
                                 <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
                                 <div className="flex flex-wrap gap-2">
-                                    {week.days.map((day) => (
+                                    {week.days.filter((day) => !day.is_rest_day).map((day) => (
                                         <button
                                             key={day.id}
                                             onClick={() => handleSelectProgramDay(week.weekNumber, day.name, day.exercises)}
@@ -692,7 +692,7 @@ export default function WorkoutLogger() {
                             <div key={week.id} className="bg-gray-800 rounded-lg p-3">
                                 <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
                                 <div className="flex flex-wrap gap-2">
-                                    {week.days.map((day) => (
+                                    {week.days.filter((day) => !day.is_rest_day).map((day) => (
                                         <button
                                             key={day.id}
                                             onClick={() => handleChangeProgramDay(week.weekNumber, day.name, day.exercises)}
