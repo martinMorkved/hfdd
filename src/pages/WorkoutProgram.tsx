@@ -7,6 +7,7 @@ import { TextInput } from "../components/ui/TextInput";
 import { TextArea } from "../components/ui/TextArea";
 import { RepInput } from "../components/ui/RepInput";
 import { Select } from "../components/ui/Select";
+import { Checkbox } from "../components/ui/Checkbox";
 import { supabase } from "../lib/supabase";
 import { TrashIcon, EditIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, PlusIcon, DumbbellIcon } from "../components/icons";
 import { ExerciseSidebar } from "../features/programs";
@@ -72,6 +73,7 @@ export default function WorkoutProgram() {
         removeWeek,
         removeDayFromWeek,
         updateDayName,
+        setDayRestDay,
         selectProgram,
         isDirty,
         startNewProgram,
@@ -499,9 +501,9 @@ export default function WorkoutProgram() {
                                                                 ? 'bg-cyan-900 border-cyan-500 shadow-lg shadow-cyan-500/20'
                                                                 : 'bg-gray-800 border-gray-700'
                                                                 }`}
-                                                            onDragOver={(e) => handleDragOver(e, week.weekNumber, day.name)}
+                                                            onDragOver={!day.is_rest_day ? (e) => handleDragOver(e, week.weekNumber, day.name) : undefined}
                                                             onDragLeave={() => { handleDragLeave(); setDropTargetReorder(null); }}
-                                                            onDrop={() => { handleDrop(week.weekNumber, day.name); setDropTargetReorder(null); }}
+                                                            onDrop={!day.is_rest_day ? () => { handleDrop(week.weekNumber, day.name); setDropTargetReorder(null); } : undefined}
                                                         >
                                                             <div className="flex items-center justify-between mb-6">
                                                                 {editingDayId === day.id ? (
@@ -542,7 +544,7 @@ export default function WorkoutProgram() {
                                                                         <EditIcon size={18} className="text-gray-400 opacity-70 group-hover:opacity-100 transition" />
                                                                     </button>
                                                                 )}
-                                                                <div className="flex items-center gap-3">
+                                                                <div className="flex items-center gap-3 flex-wrap">
                                                                     {/* Remove day (rotating: any day when >1; weekly: only Extra N) */}
                                                                     {(
                                                                         (currentProgram.structure === "rotating" && week.days.length > 1) ||
@@ -556,7 +558,7 @@ export default function WorkoutProgram() {
                                                                                 Remove day
                                                                             </button>
                                                                         )}
-                                                                    {!isMobile && (
+                                                                    {!isMobile && !day.is_rest_day && (
                                                                         <span className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
                                                                             ? 'text-cyan-300 font-medium'
                                                                             : 'text-gray-400'
@@ -570,8 +572,32 @@ export default function WorkoutProgram() {
                                                                 </div>
                                                             </div>
 
-                                                            {day.exercises.length === 0 ? (
-                                                                <p className="text-gray-400 text-sm">No exercises added</p>
+                                                            {day.is_rest_day ? (
+                                                                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                                                                    <label className="flex flex-col items-center gap-3 cursor-pointer group">
+                                                                        <Checkbox
+                                                                            checked={true}
+                                                                            onChange={() => setDayRestDay(week.weekNumber, day.id, false)}
+                                                                            ariaLabel="Unmark as rest day"
+                                                                            className="w-7 h-7"
+                                                                        />
+                                                                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition">Rest day</span>
+                                                                    </label>
+                                                                    <p className="text-gray-400 text-sm italic">No exercises</p>
+                                                                </div>
+                                                            ) : day.exercises.length === 0 ? (
+                                                                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                                                                    <label className="flex flex-col items-center gap-3 cursor-pointer group">
+                                                                        <Checkbox
+                                                                            checked={false}
+                                                                            onChange={() => setDayRestDay(week.weekNumber, day.id, true)}
+                                                                            ariaLabel="Mark as rest day"
+                                                                            className="w-7 h-7"
+                                                                        />
+                                                                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition">Mark as rest day</span>
+                                                                    </label>
+                                                                    <p className="text-gray-400 text-sm">No exercises added</p>
+                                                                </div>
                                                             ) : (
                                                                 <div className="space-y-4">
                                                                     {day.exercises.map((exercise, exerciseIndex) => {
@@ -612,15 +638,16 @@ export default function WorkoutProgram() {
                                                                                         }
                                                                                     }}
                                                                                 >
-                                                                                    <div className="flex items-center justify-between mb-3">
-                                                                                        <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
-                                                                                        <div className="flex items-center gap-2">
+                                                                                    <div className="mb-3">
+                                                                                        {/* First row: Exercise name and up/down arrows */}
+                                                                                        <div className="flex items-center justify-between mb-3">
+                                                                                            <span className="text-white font-medium text-lg">{exercise.exerciseName}</span>
                                                                                             <div className="flex items-center rounded border border-gray-600 overflow-hidden">
                                                                                                 <button
                                                                                                     type="button"
                                                                                                     onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'up')}
                                                                                                     disabled={exerciseIndex === 0}
-                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    className="p-2 sm:p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                                                                                     title="Move up"
                                                                                                 >
                                                                                                     <ChevronUpIcon size={18} />
@@ -629,12 +656,15 @@ export default function WorkoutProgram() {
                                                                                                     type="button"
                                                                                                     onClick={() => moveExerciseInDay(week.weekNumber, day.name, exercise.id, 'down')}
                                                                                                     disabled={exerciseIndex === day.exercises.length - 1}
-                                                                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition"
+                                                                                                    className="p-2 sm:p-1.5 text-gray-400 hover:text-white hover:bg-gray-600 disabled:opacity-40 disabled:pointer-events-none transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                                                                                     title="Move down"
                                                                                                 >
                                                                                                     <ChevronDownIcon size={18} />
                                                                                                 </button>
                                                                                             </div>
+                                                                                        </div>
+                                                                                        {/* Second row: Alternatives and Remove buttons */}
+                                                                                        <div className="flex items-center justify-end gap-3 sm:gap-2">
                                                                                             <ExerciseHistoryButton
                                                                                                 exerciseId={exercise.exerciseId}
                                                                                                 exerciseName={exercise.exerciseName}
@@ -642,14 +672,14 @@ export default function WorkoutProgram() {
                                                                                             />
                                                                                             <button
                                                                                                 onClick={() => openAlternativesModal(week.weekNumber, day.name, exercise.exerciseId)}
-                                                                                                className="text-cyan-400 hover:text-cyan-300 text-sm"
+                                                                                                className="text-cyan-400 hover:text-cyan-300 text-sm px-3 py-2 sm:px-0 sm:py-0 min-h-[44px] sm:min-h-0 flex items-center justify-center"
                                                                                             >
                                                                                                 Alternatives
                                                                                             </button>
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => removeExerciseFromDay(week.weekNumber, day.name, exercise.id)}
-                                                                                                className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                                                                className="text-sm px-4 py-2 sm:px-2 sm:py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition min-h-[44px] sm:min-h-0 flex items-center justify-center"
                                                                                             >
                                                                                                 Remove
                                                                                             </button>
@@ -758,7 +788,7 @@ export default function WorkoutProgram() {
                                                                     })}
                                                                 </div>
                                                             )}
-                                                            {isMobile && (
+                                                            {isMobile && !day.is_rest_day && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setAddExerciseTarget({ weekNumber: week.weekNumber, dayName: day.name })}

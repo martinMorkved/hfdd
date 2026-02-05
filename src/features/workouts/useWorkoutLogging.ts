@@ -10,6 +10,9 @@ export interface WorkoutExercise {
     reps: number[];
     weight?: number;
     notes?: string;
+    alternatives?: string[];
+    original_exercise_id?: string;
+    original_exercise_name?: string;
 }
 
 export interface WorkoutSession {
@@ -30,6 +33,7 @@ export type ProgramDayExercise = {
     exercise_name: string;
     sets: number;
     reps: number[];
+    alternatives?: string[];
 };
 
 const SESSION_STORAGE_KEY = 'hfdd_workout_in_progress';
@@ -167,16 +171,29 @@ export function useWorkoutLogging() {
 
     const createProgramSession = (
         programId: string,
-        programName: string,
         weekNumber: number,
         dayName: string,
-        dayExercises: ProgramDayExercise[]
+        dayExercises: ProgramDayExercise[],
+        totalWeeks?: number,
+        programStructure?: 'weekly' | 'rotating' | 'block' | 'frequency'
     ): string => {
         if (!user) throw new Error('User not authenticated');
 
         // Create session in memory only (saved to DB on "Finish Workout")
         const tempId = `temp-${Date.now()}`;
-        const sessionName = `${programName} – Week ${weekNumber} – ${dayName}`;
+        // Generate session name based on program structure
+        let sessionName: string;
+        if (programStructure === 'rotating' || programStructure === 'block') {
+            // Rotating and Block programs never show "Week", just the day name
+            // These are cyclical programs where the day name (Day A/B/C or Block 1/2/3) is sufficient
+            sessionName = dayName;
+        } else if (totalWeeks === 1) {
+            // Single-week programs: just show the day name
+            sessionName = dayName;
+        } else {
+            // Multi-week programs (weekly, frequency): show "Week X – Day Name"
+            sessionName = `Week ${weekNumber} – ${dayName}`;
+        }
         const sessionDate = new Date().toISOString().split('T')[0];
 
         const exercises: WorkoutExercise[] = dayExercises.map((ex, index) => ({
@@ -186,7 +203,8 @@ export function useWorkoutLogging() {
             sets: ex.sets,
             reps: ex.reps?.length ? ex.reps : [10, 10, 10],
             weight: undefined,
-            notes: undefined
+            notes: undefined,
+            alternatives: ex.alternatives || []
         }));
 
         const newSession: WorkoutSession = {
@@ -249,6 +267,68 @@ export function useWorkoutLogging() {
         setCurrentSession(prev => prev ? {
             ...prev,
             exercises: prev.exercises.filter(ex => ex.id !== entryId)
+        } : null);
+    };
+
+    const swapExerciseAlternative = async (entryId: string, alternativeName: string) => {
+        if (!currentSession) throw new Error('No active session');
+
+        // Find the exercise
+        const exercise = currentSession.exercises.find(ex => ex.id === entryId);
+        if (!exercise) return;
+
+        // Check if swapping back to original
+        if (exercise.original_exercise_name && alternativeName === exercise.original_exercise_name) {
+            // Swap back to original
+            setCurrentSession(prev => prev ? {
+                ...prev,
+                exercises: prev.exercises.map(ex =>
+                    ex.id === entryId
+                        ? {
+                            ...ex,
+                            exercise_id: ex.original_exercise_id!,
+                            exercise_name: ex.original_exercise_name!,
+                            original_exercise_id: undefined,
+                            original_exercise_name: undefined
+                        }
+                        : ex
+                )
+            } : null);
+            return;
+        }
+
+        // Check if it's a valid alternative
+        if (!exercise.alternatives || !exercise.alternatives.includes(alternativeName)) {
+            return;
+        }
+
+        // Find the alternative exercise in the exercises list
+        const { data: alternativeExercise, error } = await supabase
+            .from('exercises')
+            .select('id, name')
+            .eq('name', alternativeName)
+            .limit(1)
+            .single();
+
+        if (error || !alternativeExercise) {
+            console.error('Alternative exercise not found:', alternativeName, error);
+            return;
+        }
+
+        // Update the exercise with the alternative
+        setCurrentSession(prev => prev ? {
+            ...prev,
+            exercises: prev.exercises.map(ex =>
+                ex.id === entryId
+                    ? {
+                        ...ex,
+                        original_exercise_id: ex.original_exercise_id || ex.exercise_id,
+                        original_exercise_name: ex.original_exercise_name || ex.exercise_name,
+                        exercise_id: alternativeExercise.id,
+                        exercise_name: alternativeName
+                    }
+                    : ex
+            )
         } : null);
     };
 
@@ -359,6 +439,7 @@ export function useWorkoutLogging() {
         removeExerciseFromSession,
         saveSession,
         clearSession,
-        checkForExistingSession
+        checkForExistingSession,
+        swapExerciseAlternative
     };
 }

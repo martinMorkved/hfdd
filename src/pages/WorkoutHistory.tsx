@@ -51,6 +51,7 @@ export default function WorkoutHistory() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<WorkoutSession | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [editingSessionName, setEditingSessionName] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -126,6 +127,7 @@ export default function WorkoutHistory() {
 
     const handleSessionClick = (session: WorkoutSession) => {
         setSelectedSession(session);
+        setEditingSessionName(null); // Reset editing state when selecting a new session
         loadSessionLogs(session.id);
     };
 
@@ -166,6 +168,33 @@ export default function WorkoutHistory() {
             console.error('Error updating session name:', error);
         } finally {
             setEditLoading(false);
+        }
+    };
+
+    const handleInlineSaveSessionName = async (sessionId: string, newName: string) => {
+        if (!newName.trim()) return;
+
+        try {
+            const { error } = await supabase
+                .from('workout_sessions')
+                .update({ session_name: newName.trim() })
+                .eq('id', sessionId);
+
+            if (error) throw error;
+
+            // Update local state
+            setSessions(prev => prev.map(session =>
+                session.id === sessionId
+                    ? { ...session, session_name: newName.trim() }
+                    : session
+            ));
+
+            // Update selected session if it's the one being edited
+            if (selectedSession?.id === sessionId) {
+                setSelectedSession(prev => prev ? { ...prev, session_name: newName.trim() } : null);
+            }
+        } catch (error) {
+            console.error('Error updating session name:', error);
         }
     };
 
@@ -503,22 +532,49 @@ export default function WorkoutHistory() {
                 <div className="lg:col-span-2">
                     {selectedSession ? (
                         <div className="bg-gray-800 rounded-lg p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white">
-                                        {selectedSession.session_name}
-                                    </h2>
+                            <div className="mb-6">
+                                {/* Name and Date Row */}
+                                <div className="mb-4">
+                                    <div className="relative max-w-md mb-2">
+                                        <TextInput
+                                            value={editingSessionName !== null ? editingSessionName : selectedSession.session_name}
+                                            onChange={(e) => {
+                                                setEditingSessionName(e.target.value);
+                                            }}
+                                            onFocus={() => {
+                                                if (editingSessionName === null) {
+                                                    setEditingSessionName(selectedSession.session_name);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                if (editingSessionName !== null && editingSessionName.trim() !== selectedSession.session_name) {
+                                                    handleInlineSaveSessionName(selectedSession.id, editingSessionName.trim());
+                                                }
+                                                setEditingSessionName(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.currentTarget.blur();
+                                                }
+                                                if (e.key === 'Escape') {
+                                                    setEditingSessionName(null);
+                                                    e.currentTarget.blur();
+                                                }
+                                            }}
+                                            className="text-2xl font-bold pl-4 pr-10 py-2"
+                                            placeholder="Session name"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                            <EditIcon size={18} className="text-gray-400" />
+                                        </span>
+                                    </div>
                                     <p className="text-gray-400">
                                         {formatDate(selectedSession.session_date)}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => handleEditSession(selectedSession)}
-                                        className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-500 transition"
-                                    >
-                                        Edit Name
-                                    </button>
+
+                                {/* Buttons Row - Stack on mobile, horizontal on desktop */}
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <Button
                                         onClick={startEditingSession}
                                         variant="primary"
@@ -534,12 +590,6 @@ export default function WorkoutHistory() {
                                     >
                                         Delete
                                     </Button>
-                                    <div className="text-right">
-                                        <div className="text-sm text-gray-400">Session Type</div>
-                                        <div className="text-white font-semibold">
-                                            {selectedSession.session_type === 'freeform' ? 'Free-form' : 'Program'}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
 

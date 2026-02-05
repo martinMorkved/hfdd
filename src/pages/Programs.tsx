@@ -47,7 +47,7 @@ export default function Programs() {
                         <p className="text-cyan-200 text-sm mb-4">{activeProgram.description}</p>
                     )}
 
-                    <div className="grid grid-cols-3 gap-3 mb-4 text-sm text-cyan-200">
+                    <div className="flex flex-col sm:flex-row sm:gap-3 gap-2 mb-4 text-sm text-cyan-200">
                         <div className="flex items-center gap-2">
                             <span className="text-cyan-400">•</span>
                             <span>{activeProgram.weeks.length} weeks</span>
