@@ -53,7 +53,6 @@ export default function WorkoutHistory() {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [editingSessionName, setEditingSessionName] = useState<string | null>(null);
 
-
     useEffect(() => {
         loadWorkoutSessions();
     }, []);
@@ -125,16 +124,18 @@ export default function WorkoutHistory() {
         }
     };
 
-    const handleSessionClick = (session: WorkoutSession) => {
-        setSelectedSession(session);
-        setEditingSessionName(null); // Reset editing state when selecting a new session
-        loadSessionLogs(session.id);
-    };
-
-    const handleEditSession = (session: WorkoutSession) => {
-        setEditingSession(session);
-        setEditSessionName(session.session_name);
-        setShowEditModal(true);
+    const handleSessionClick = async (session: WorkoutSession) => {
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+        if (isDesktop) {
+            setSelectedSession(session);
+            setEditingSessionName(null);
+            loadSessionLogs(session.id);
+        } else {
+            const sessionData = await loadSessionForEditing(session);
+            if (sessionData) {
+                navigate('/log-workout', { state: { editSession: sessionData } });
+            }
+        }
     };
 
     const handleSaveEdit = async () => {
@@ -353,15 +354,12 @@ export default function WorkoutHistory() {
 
 
 
-    const startEditingSession = async () => {
-        if (!selectedSession) return;
-
+    const loadSessionForEditing = async (session: WorkoutSession) => {
         try {
-            // Load the session data with exercises
             const { data: logsData, error } = await supabase
                 .from('workout_logs')
                 .select('*')
-                .eq('session_id', selectedSession.id)
+                .eq('session_id', session.id)
                 .order('exercise_order', { ascending: true });
 
             if (error) throw error;
@@ -376,24 +374,34 @@ export default function WorkoutHistory() {
                 notes: log.notes
             }));
 
-            const sessionData = {
-                id: selectedSession.id,
+            return {
+                id: session.id,
                 user_id: user!.id,
-                session_type: selectedSession.session_type,
-                session_name: selectedSession.session_name,
-                session_date: selectedSession.session_date,
+                session_type: session.session_type,
+                session_name: session.session_name,
+                session_date: session.session_date,
                 exercises
             };
+        } catch (err) {
+            console.error('Error loading session for editing:', err);
+            return null;
+        }
+    };
 
-            // Navigate to WorkoutLogger with session data
+    const startEditingSession = async () => {
+        if (!selectedSession) return;
+        const sessionData = await loadSessionForEditing(selectedSession);
+        if (sessionData) {
+            navigate('/log-workout', { state: { editSession: sessionData } });
+        }
+    };
 
-            navigate('/log-workout', {
-                state: {
-                    editSession: sessionData
-                }
-            });
-        } catch (error) {
-            console.error('Error loading session for editing:', error);
+    /** Open Workout Logger in edit mode for a session (used from session card Edit button, e.g. on mobile). */
+    const startEditingSessionFromCard = async (e: React.MouseEvent, session: WorkoutSession) => {
+        e.stopPropagation();
+        const sessionData = await loadSessionForEditing(session);
+        if (sessionData) {
+            navigate('/log-workout', { state: { editSession: sessionData } });
         }
     };
 
@@ -500,7 +508,7 @@ export default function WorkoutHistory() {
                                                 <div key={session.id} className="relative group">
                                                     <button
                                                         onClick={() => handleSessionClick(session)}
-                                                        className={`w-full text-left p-3 rounded-lg transition ${selectedSession?.id === session.id
+                                                        className={`w-full text-left p-3 pr-12 rounded-lg transition ${selectedSession?.id === session.id
                                                             ? 'bg-cyan-600 text-white'
                                                             : 'bg-gray-700 hover:bg-gray-600 text-white'
                                                             }`}
@@ -513,10 +521,12 @@ export default function WorkoutHistory() {
                                                         </div>
                                                     </button>
                                                     <button
-                                                        onClick={() => handleEditSession(session)}
-                                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white text-sm"
+                                                        type="button"
+                                                        onClick={(e) => startEditingSessionFromCard(e, session)}
+                                                        aria-label="Edit workout"
+                                                        className="absolute top-1/2 right-2 -translate-y-1/2 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                                                     >
-                                                        <EditIcon size={16} />
+                                                        <EditIcon size={20} />
                                                     </button>
                                                 </div>
                                             ))}
