@@ -323,7 +323,8 @@ export default function WorkoutLogger() {
         try {
             await saveSession();
             clearSession();
-            navigate('/');
+            const fromHistory = !!location.state?.editSession;
+            navigate(fromHistory ? '/history' : '/');
         } catch (error) {
             console.error('Error finishing workout:', error);
         }
@@ -398,7 +399,7 @@ export default function WorkoutLogger() {
                         <Button
                             onClick={() => {
                                 clearSession();
-                                navigate('/');
+                                navigate(location.state?.editSession ? '/history' : '/');
                             }}
                             variant="secondary"
                         >
