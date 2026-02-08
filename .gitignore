@@ -19,6 +19,9 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+# Local project links (dashboards, not committed)
+project-links.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
