@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+    signUp: (email: string, password: string, name: string, inviteCode?: string) => Promise<{ error: any }>;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<{ error: any }>;
@@ -44,7 +44,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => subscription.unsubscribe();
     }, []);
 
-    const signUp = async (email: string, password: string, name: string) => {
+    const signUp = async (email: string, password: string, name: string, inviteCode?: string) => {
+        const { data: valid, error: rpcError } = await supabase.rpc('validate_beta_invite_code', {
+            input_code: (inviteCode ?? '').trim(),
+            input_email: email?.trim() ?? null,
+        });
+        if (rpcError) {
+            return { error: { message: 'Could not validate invite code. Please try again.' } };
+        }
+        if (valid !== true) {
+            return { error: { message: 'Invalid or missing invite code.' } };
+        }
         const { error } = await supabase.auth.signUp({
             email,
             password,

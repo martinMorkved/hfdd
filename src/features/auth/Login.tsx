@@ -10,6 +10,7 @@ export const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
+    const [inviteCode, setInviteCode] = useState('');
     const [mode, setMode] = useState<AuthMode>('signIn');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export const Login: React.FC = () => {
                     setLoading(false);
                     return;
                 }
-                const { error } = await signUp(email, password, name.trim());
+                const { error } = await signUp(email, password, name.trim(), inviteCode.trim() || undefined);
                 if (error) {
                     setError(error.message);
                 } else {
@@ -144,6 +145,25 @@ export const Login: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Invite code - only for signUp (required when beta codes are configured) */}
+                    {mode === 'signUp' && (
+                        <div>
+                            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-300 mb-2">
+                                Invite code
+                            </label>
+                            <TextInput
+                                id="inviteCode"
+                                type="text"
+                                variant="auth"
+                                value={inviteCode}
+                                onChange={(e) => setInviteCode(e.target.value)}
+                                className="px-4 py-2"
+                                placeholder="Enter your invite code"
+                                autoComplete="off"
+                            />
+                        </div>
+                    )}
+
                     {/* Email field - shown for signIn, signUp, forgotPassword */}
                     {mode !== 'resetPassword' && (
                         <div>
@@ -231,12 +251,13 @@ export const Login: React.FC = () => {
                         </>
                     )}
                     {mode === 'signUp' && (
-                        <button
-                            onClick={() => { 
+                            <button
+                                onClick={() => { 
                                 setMode('signIn'); 
                                 setError(null); 
                                 setMessage(null);
                                 setName('');
+                                setInviteCode('');
                             }}
                             className="text-cyan-400 hover:text-cyan-300 text-sm"
                         >
