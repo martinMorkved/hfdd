@@ -45,8 +45,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signUp = async (email: string, password: string, name: string, inviteCode?: string) => {
+        const code = (inviteCode ?? '').trim();
         const { data: valid, error: rpcError } = await supabase.rpc('validate_beta_invite_code', {
-            input_code: (inviteCode ?? '').trim(),
+            input_code: code,
             input_email: email?.trim() ?? null,
         });
         if (rpcError) {
@@ -65,7 +66,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
             }
         });
-        return { error };
+        if (error) {
+            // Signup failed (e.g. email delivery error) – release the code so they can try again
+            if (code) {
+                await supabase.rpc('release_beta_invite_code', {
+                    input_code: code,
+                    input_email: email?.trim() ?? '',
+                });
+            }
+            return { error };
+        }
+        return { error: undefined };
     };
 
     const signIn = async (email: string, password: string) => {
