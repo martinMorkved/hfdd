@@ -15,7 +15,7 @@ import { ExerciseSelector, ExerciseHistoryButton } from '../features/exercises';
 import { MobileExerciseSelector } from '../components/MobileExerciseSelector';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../features/exercises/types';
-import { PlusIcon, CheckIcon, CalendarIcon } from '../components/icons';
+import { PlusIcon, CheckIcon, CalendarIcon, TrashIcon } from '../components/icons';
 
 export default function WorkoutLogger() {
     const navigate = useNavigate();
@@ -67,6 +67,8 @@ export default function WorkoutLogger() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
     const [mobileSelectedExerciseIds, setMobileSelectedExerciseIds] = useState<Set<string>>(new Set());
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     // Mobile layout detection
     useEffect(() => {
@@ -330,6 +332,27 @@ export default function WorkoutLogger() {
         }
     };
 
+    const handleDeleteWorkout = () => {
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteWorkout = async () => {
+        if (!currentSession) return;
+        try {
+            setDeleteLoading(true);
+            const sessionId = currentSession.id;
+            await supabase.from('workout_logs').delete().eq('session_id', sessionId);
+            await supabase.from('workout_sessions').delete().eq('id', sessionId);
+            clearSession();
+            setShowDeleteModal(false);
+            navigate('/history');
+        } catch (error) {
+            console.error('Error deleting workout:', error);
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
     const addRepSet = () => {
         setExerciseForm(prev => ({
             ...prev,
@@ -395,7 +418,7 @@ export default function WorkoutLogger() {
                     )
                 }
                 actions={
-                    <div className="flex gap-3 flex-shrink-0">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0">
                         <Button
                             onClick={() => {
                                 clearSession();
@@ -405,6 +428,16 @@ export default function WorkoutLogger() {
                         >
                             Cancel
                         </Button>
+                        {currentSession && location.state?.editSession && (
+                            <Button
+                                onClick={handleDeleteWorkout}
+                                variant="danger"
+                                icon={<TrashIcon size={18} />}
+                                title="Delete workout"
+                            >
+                                Delete
+                            </Button>
+                        )}
                         {currentSession && (
                             <Button
                                 onClick={handleFinishWorkout}
@@ -465,6 +498,44 @@ export default function WorkoutLogger() {
                             fullWidth
                         >
                             Continue
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Delete Workout Confirmation Modal (when editing from history) */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => !deleteLoading && setShowDeleteModal(false)}
+                title="Delete Workout"
+                maxWidth="max-w-md"
+            >
+                <div>
+                    <p className="text-gray-300 mb-4">
+                        Are you sure you want to delete this workout? This cannot be undone.
+                    </p>
+                    {currentSession && (
+                        <p className="text-white font-medium mb-6">
+                            {currentSession.session_name}
+                        </p>
+                    )}
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={() => setShowDeleteModal(false)}
+                            variant="secondary"
+                            fullWidth
+                            disabled={deleteLoading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmDeleteWorkout}
+                            variant="danger"
+                            icon={<TrashIcon size={18} />}
+                            fullWidth
+                            disabled={deleteLoading}
+                        >
+                            {deleteLoading ? 'Deleting...' : 'Delete'}
                         </Button>
                     </div>
                 </div>
