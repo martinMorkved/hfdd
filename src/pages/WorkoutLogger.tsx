@@ -69,7 +69,6 @@ export default function WorkoutLogger() {
     const [mobileSelectedExerciseIds, setMobileSelectedExerciseIds] = useState<Set<string>>(new Set());
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
-
     // Mobile layout detection
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 767px)");
@@ -168,7 +167,7 @@ export default function WorkoutLogger() {
         }
     }, [isProgramFlow, existingSession, currentSession, showExistingSessionModal, location.state]);
 
-    // Auto-create session modal for freeform only; program flow uses program day picker
+    // Auto-create session modal for freeform only
     useEffect(() => {
         if (isProgramFlow) return;
         if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal && !location.state?.editSession) {
@@ -446,7 +445,9 @@ export default function WorkoutLogger() {
                                 disabled={currentSession.exercises.length === 0}
                                 title={currentSession.exercises.length === 0 ? 'Add at least one exercise to finish' : ''}
                             >
-                                {location.state?.editSession ? 'Save Changes' : 'Finish Workout'}
+                                {location.state?.editSession
+                                    ? (location.state?.editSessionInProgress ? 'Finish Workout' : 'Save Changes')
+                                    : 'Finish Workout'}
                             </Button>
                         )}
                     </div>
