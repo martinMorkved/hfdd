@@ -332,84 +332,82 @@ export function useWorkoutLogging() {
         } : null);
     };
 
+    const AUTO_SAVE_DELAY_MS = 3500;
+
+    /** Persist session to DB without marking completed (for auto-save). Returns new session id if inserted. */
+    const persistSessionToDb = async (session: WorkoutSession, markCompleted: boolean): Promise<string | null> => {
+        if (!user) return null;
+        const isNewSession = session.id?.startsWith('temp-');
+
+        if (isNewSession) {
+            const { data: sessionData, error: sessionError } = await supabase
+                .from('workout_sessions')
+                .insert({
+                    user_id: user.id,
+                    session_type: session.session_type,
+                    session_name: session.session_name,
+                    session_date: session.session_date,
+                    program_id: session.program_id || null,
+                    week_number: session.week_number || null,
+                    day_name: session.day_name || null,
+                    completed_at: markCompleted ? new Date().toISOString() : null
+                })
+                .select()
+                .single();
+
+            if (sessionError) throw sessionError;
+
+            if (session.exercises.length > 0) {
+                const logsToInsert = session.exercises.map((ex, index) => ({
+                    session_id: sessionData.id,
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    sets_completed: ex.sets,
+                    reps_per_set: ex.reps,
+                    weight_per_set: ex.weight ? [ex.weight] : [],
+                    notes: ex.notes || null,
+                    exercise_order: index + 1
+                }));
+                const { error: logsError } = await supabase.from('workout_logs').insert(logsToInsert);
+                if (logsError) throw logsError;
+            }
+            return sessionData.id;
+        } else {
+            const sessionId = session.id!;
+            await supabase.from('workout_sessions').update({
+                session_name: session.session_name,
+                session_date: session.session_date,
+                ...(markCompleted ? { completed_at: new Date().toISOString() } : {})
+            }).eq('id', sessionId);
+
+            await supabase.from('workout_logs').delete().eq('session_id', sessionId);
+            if (session.exercises.length > 0) {
+                const logsToInsert = session.exercises.map((ex, index) => ({
+                    session_id: sessionId,
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    sets_completed: ex.sets,
+                    reps_per_set: ex.reps,
+                    weight_per_set: ex.weight ? [ex.weight] : [],
+                    notes: ex.notes || null,
+                    exercise_order: index + 1
+                }));
+                const { error: logsError } = await supabase.from('workout_logs').insert(logsToInsert);
+                if (logsError) throw logsError;
+            }
+            return null;
+        }
+    };
+
     const saveSession = async (): Promise<string> => {
         if (!currentSession || !user) throw new Error('No active session');
 
         setLoading(true);
         try {
-            // Check if this is a new session (temp ID) or existing one being edited
             const isNewSession = currentSession.id?.startsWith('temp-');
-
-            if (isNewSession) {
-                // Insert session to database
-                const { data: sessionData, error: sessionError } = await supabase
-                    .from('workout_sessions')
-                    .insert({
-                        user_id: user.id,
-                        session_type: currentSession.session_type,
-                        session_name: currentSession.session_name,
-                        session_date: currentSession.session_date,
-                        program_id: currentSession.program_id || null,
-                        week_number: currentSession.week_number || null,
-                        day_name: currentSession.day_name || null
-                    })
-                    .select()
-                    .single();
-
-                if (sessionError) throw sessionError;
-
-                // Insert all exercises
-                if (currentSession.exercises.length > 0) {
-                    const logsToInsert = currentSession.exercises.map((ex, index) => ({
-                        session_id: sessionData.id,
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets_completed: ex.sets,
-                        reps_per_set: ex.reps,
-                        weight_per_set: ex.weight ? [ex.weight] : [],
-                        notes: ex.notes || null,
-                        exercise_order: index + 1
-                    }));
-
-                    const { error: logsError } = await supabase
-                        .from('workout_logs')
-                        .insert(logsToInsert);
-
-                    if (logsError) throw logsError;
-                }
-
-                return sessionData.id;
-            } else {
-                // Editing existing session - update exercises
-                const sessionId = currentSession.id!;
-
-                // Delete old exercises and insert new ones
-                await supabase
-                    .from('workout_logs')
-                    .delete()
-                    .eq('session_id', sessionId);
-
-                if (currentSession.exercises.length > 0) {
-                    const logsToInsert = currentSession.exercises.map((ex, index) => ({
-                        session_id: sessionId,
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets_completed: ex.sets,
-                        reps_per_set: ex.reps,
-                        weight_per_set: ex.weight ? [ex.weight] : [],
-                        notes: ex.notes || null,
-                        exercise_order: index + 1
-                    }));
-
-                    const { error: logsError } = await supabase
-                        .from('workout_logs')
-                        .insert(logsToInsert);
-
-                    if (logsError) throw logsError;
-                }
-
-                return sessionId;
-            }
+            const newId = await persistSessionToDb(currentSession, true);
+            if (isNewSession && newId) return newId;
+            return currentSession.id!;
         } catch (error) {
             console.error('Error saving session:', error);
             throw error;
@@ -417,6 +415,80 @@ export function useWorkoutLogging() {
             setLoading(false);
         }
     };
+
+    // Debounced auto-save: persist to DB without marking completed (3.5s after last change)
+    const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const sessionRefForAutoSave = useRef<WorkoutSession | null>(null);
+
+    useEffect(() => {
+        if (!currentSession || !user) return;
+        sessionRefForAutoSave.current = currentSession;
+        if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = setTimeout(async () => {
+            autoSaveTimeoutRef.current = null;
+            const session = sessionRefForAutoSave.current;
+            if (!session) return;
+            try {
+                const newId = await persistSessionToDb(session, false);
+                if (newId && session.id?.startsWith('temp-')) {
+                    setCurrentSession(prev => prev && prev.id === session.id ? { ...prev, id: newId } : prev);
+                }
+            } catch (err) {
+                console.error('Auto-save failed:', err);
+            }
+        }, AUTO_SAVE_DELAY_MS);
+        return () => {
+            if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+        };
+    }, [currentSession, user?.id]);
+
+    // Visibility re-fetch: when user returns to tab, refresh session from DB
+    useEffect(() => {
+        const handleVisibility = async () => {
+            if (document.visibilityState !== 'visible') return;
+            const session = sessionRefForAutoSave.current ?? currentSession;
+            if (!session?.id || session.id.startsWith('temp-') || !user) return;
+            try {
+                const { data: row, error } = await supabase
+                    .from('workout_sessions')
+                    .select('*')
+                    .eq('id', session.id)
+                    .single();
+                if (error || !row) return;
+                const { data: logsData, error: logsError } = await supabase
+                    .from('workout_logs')
+                    .select('*')
+                    .eq('session_id', session.id)
+                    .order('exercise_order', { ascending: true });
+                if (logsError) return;
+                const exercises: WorkoutExercise[] = (logsData || []).map(log => ({
+                    id: log.id,
+                    exercise_id: log.exercise_id,
+                    exercise_name: log.exercise_name,
+                    sets: log.sets_completed,
+                    reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
+                    weight: log.weight_per_set?.[0],
+                    notes: log.notes
+                }));
+                const refreshed: WorkoutSession = {
+                    id: row.id,
+                    user_id: row.user_id,
+                    session_type: row.session_type,
+                    session_name: row.session_name,
+                    session_date: row.session_date,
+                    program_id: row.program_id,
+                    week_number: row.week_number,
+                    day_name: row.day_name,
+                    exercises
+                };
+                setCurrentSession(refreshed);
+            } catch (e) {
+                console.error('Visibility re-fetch failed:', e);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [user?.id]);
 
     const clearSession = () => {
         setCurrentSession(null);

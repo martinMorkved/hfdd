@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/ui/Modal';
@@ -19,6 +19,7 @@ interface WorkoutSession {
     session_date: string;
     session_type: 'program' | 'freeform';
     created_at: string;
+    completed_at: string | null;
 }
 
 interface WorkoutLog {
@@ -33,6 +34,7 @@ interface WorkoutLog {
 
 export default function WorkoutHistory() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const [sessions, setSessions] = useState<WorkoutSession[]>([]);
     const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
@@ -56,6 +58,27 @@ export default function WorkoutHistory() {
     useEffect(() => {
         loadWorkoutSessions();
     }, []);
+
+    // When coming from Dashboard "Workout in progress", open the newest in-progress session in the logger
+    useEffect(() => {
+        if (!(location.state as { openInProgress?: boolean })?.openInProgress || loading || sessions.length === 0) return;
+        const inProgress = sessions.filter(s => s.completed_at == null);
+        const newest = inProgress[0] ?? null;
+        if (!newest) {
+            navigate('/history', { replace: true, state: {} });
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const sessionData = await loadSessionForEditing(newest);
+            if (!cancelled && sessionData) {
+                navigate('/log-workout', { state: { editSession: sessionData, editSessionInProgress: true } });
+            } else if (!cancelled) {
+                navigate('/history', { replace: true, state: {} });
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [loading, sessions]);
 
     const loadWorkoutSessions = async () => {
         if (!user) return;
@@ -133,7 +156,7 @@ export default function WorkoutHistory() {
         } else {
             const sessionData = await loadSessionForEditing(session);
             if (sessionData) {
-                navigate('/log-workout', { state: { editSession: sessionData } });
+                navigate('/log-workout', { state: { editSession: sessionData, editSessionInProgress: session.completed_at == null } });
             }
         }
     };
@@ -392,7 +415,7 @@ export default function WorkoutHistory() {
         if (!selectedSession) return;
         const sessionData = await loadSessionForEditing(selectedSession);
         if (sessionData) {
-            navigate('/log-workout', { state: { editSession: sessionData } });
+            navigate('/log-workout', { state: { editSession: sessionData, editSessionInProgress: selectedSession.completed_at == null } });
         }
     };
 
@@ -401,7 +424,7 @@ export default function WorkoutHistory() {
         e.stopPropagation();
         const sessionData = await loadSessionForEditing(session);
         if (sessionData) {
-            navigate('/log-workout', { state: { editSession: sessionData } });
+            navigate('/log-workout', { state: { editSession: sessionData, editSessionInProgress: session.completed_at == null } });
         }
     };
 
@@ -513,8 +536,13 @@ export default function WorkoutHistory() {
                                                             : 'bg-gray-700 hover:bg-gray-600 text-white'
                                                             }`}
                                                     >
-                                                        <div className="font-semibold mb-1">
+                                                        <div className="font-semibold mb-1 flex items-center gap-2 flex-wrap">
                                                             {session.session_name}
+                                                            {session.completed_at == null && (
+                                                                <span className="text-xs px-2 py-0.5 rounded bg-amber-600/80 text-white font-medium">
+                                                                    In progress
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="text-xs opacity-80">
                                                             {session.session_type === 'freeform' ? 'Free-form' : 'Program'}

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useWorkoutProgram } from "../features/programs/useWorkoutProgram";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import { Modal } from "../components/ui/Modal";
 import { StatCard } from "../components/ui/StatCard";
 import { Card } from "../components/ui/Card";
@@ -20,7 +21,24 @@ export default function Dashboard() {
     const { user } = useAuth();
     const { activeProgram, programs } = useWorkoutProgram();
     const [showLogModal, setShowLogModal] = useState(false);
+    const [inProgressSession, setInProgressSession] = useState<{ id: string; session_name: string } | null>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!user) return;
+        const load = async () => {
+            const { data, error } = await supabase
+                .from('workout_sessions')
+                .select('id, session_name')
+                .eq('user_id', user.id)
+                .is('completed_at', null)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (!error && data?.[0]) setInProgressSession(data[0]);
+            else setInProgressSession(null);
+        };
+        load();
+    }, [user?.id]);
 
     const handleLogWorkout = () => {
         setShowLogModal(true);
@@ -64,13 +82,24 @@ export default function Dashboard() {
                     <p className="text-gray-400 text-sm mb-4 sm:mb-6">
                         Track your workout session and build your fitness journey!
                     </p>
-                    <Button
-                        onClick={handleLogWorkout}
-                        variant="success"
-                        className="w-full sm:w-auto"
-                    >
-                        Log Workout
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        {inProgressSession && (
+                            <Button
+                                onClick={() => navigate('/history', { state: { openInProgress: true } })}
+                                variant="primary"
+                                className="w-full sm:w-auto"
+                            >
+                                Workout in progress
+                            </Button>
+                        )}
+                        <Button
+                            onClick={handleLogWorkout}
+                            variant="success"
+                            className="w-full sm:w-auto"
+                        >
+                            Log Workout
+                        </Button>
+                    </div>
 
                     {/* Divider */}
                     <div className="border-t border-gray-700 my-6"></div>
