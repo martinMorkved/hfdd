@@ -69,6 +69,8 @@ export default function WorkoutLogger() {
     const [mobileSelectedExerciseIds, setMobileSelectedExerciseIds] = useState<Set<string>>(new Set());
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [inProgressSession, setInProgressSession] = useState<{ id: string; session_name: string; session_type: string; session_date: string; user_id: string; program_id?: string; week_number?: number; day_name?: string } | null>(null);
+    const [inProgressLoading, setInProgressLoading] = useState(false);
     // Mobile layout detection
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 767px)");
@@ -176,6 +178,62 @@ export default function WorkoutLogger() {
             setShowSessionModal(false);
         }
     }, [isProgramFlow, currentSession, existingSession, showSessionModal, showExistingSessionModal, location.state]);
+
+    // When showing program day picker (e.g. after refresh), check for an in-progress session to offer "Workout in progress"
+    useEffect(() => {
+        if (!user || !isProgramFlow || !activeProgram || currentSession) return;
+        let cancelled = false;
+        (async () => {
+            const { data, error } = await supabase
+                .from('workout_sessions')
+                .select('id, session_name, session_type, session_date, user_id, program_id, week_number, day_name')
+                .eq('user_id', user.id)
+                .is('completed_at', null)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (!cancelled && !error && data?.[0]) setInProgressSession(data[0]);
+            else if (!cancelled) setInProgressSession(null);
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id, isProgramFlow, activeProgram, currentSession]);
+
+    const handleOpenInProgressWorkout = async () => {
+        if (!inProgressSession || !user) return;
+        setInProgressLoading(true);
+        try {
+            const { data: logsData, error } = await supabase
+                .from('workout_logs')
+                .select('*')
+                .eq('session_id', inProgressSession.id)
+                .order('exercise_order', { ascending: true });
+            if (error) throw error;
+            const exercises = (logsData || []).map((log: { id: string; exercise_id: string; exercise_name: string; sets_completed: number; reps_per_set: number[] | string; weight_per_set?: number[]; notes?: string }) => ({
+                id: log.id,
+                exercise_id: log.exercise_id,
+                exercise_name: log.exercise_name,
+                sets: log.sets_completed,
+                reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
+                weight: log.weight_per_set?.[0],
+                notes: log.notes
+            }));
+            const sessionData = {
+                id: inProgressSession.id,
+                user_id: inProgressSession.user_id,
+                session_type: inProgressSession.session_type as 'program' | 'freeform',
+                session_name: inProgressSession.session_name,
+                session_date: inProgressSession.session_date,
+                program_id: inProgressSession.program_id,
+                week_number: inProgressSession.week_number,
+                day_name: inProgressSession.day_name,
+                exercises
+            };
+            await continueExistingSession(sessionData);
+        } catch (err) {
+            console.error('Error loading in-progress workout:', err);
+        } finally {
+            setInProgressLoading(false);
+        }
+    };
 
     const handleCreateSession = () => {
         if (!sessionName.trim()) return;
@@ -590,6 +648,19 @@ export default function WorkoutLogger() {
                 maxWidth="max-w-lg"
             >
                 <div>
+                    {inProgressSession && (
+                        <div className="mb-4 p-3 bg-cyan-900/30 border border-cyan-700/50 rounded-lg">
+                            <p className="text-gray-300 text-sm mb-2">You have a workout in progress.</p>
+                            <Button
+                                onClick={handleOpenInProgressWorkout}
+                                variant="primary"
+                                fullWidth
+                                disabled={inProgressLoading}
+                            >
+                                {inProgressLoading ? 'Loading...' : 'Workout in progress'}
+                            </Button>
+                        </div>
+                    )}
                     <p className="text-gray-300 mb-4">
                         Choose the week and day you're doing today.
                     </p>
