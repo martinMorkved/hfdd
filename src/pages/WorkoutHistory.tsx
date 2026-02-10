@@ -387,15 +387,23 @@ export default function WorkoutHistory() {
 
             if (error) throw error;
 
-            const exercises = (logsData || []).map(log => ({
-                id: log.id,
-                exercise_id: log.exercise_id,
-                exercise_name: log.exercise_name,
-                sets: log.sets_completed,
-                reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
-                weight: log.weight_per_set && log.weight_per_set.length > 0 ? log.weight_per_set[0] : null,
-                notes: log.notes
-            }));
+            const exercises = (logsData || []).map(log => {
+                const reps = typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set;
+                const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
+                const full = reps?.length ? [...wp].slice(0, reps.length) : [];
+                const defaultW = full[0] ?? 0;
+                const overrides = full.map((w: number) => (w !== defaultW ? w : undefined));
+                return {
+                    id: log.id,
+                    exercise_id: log.exercise_id,
+                    exercise_name: log.exercise_name,
+                    sets: log.sets_completed,
+                    reps,
+                    weight: defaultW,
+                    weight_per_set: overrides.some((x: undefined | number) => x !== undefined) ? overrides : undefined,
+                    notes: log.notes
+                };
+            });
 
             return {
                 id: session.id,

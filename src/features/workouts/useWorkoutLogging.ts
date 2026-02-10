@@ -8,7 +8,10 @@ export interface WorkoutExercise {
     exercise_name: string;
     sets: number;
     reps: number[];
+    /** Default weight (kg) for all sets; one input in UI; 0 = bodyweight */
     weight?: number;
+    /** Override weight (kg) for specific set index; undefined = use default weight */
+    weight_per_set?: (number | undefined)[];
     notes?: string;
     alternatives?: string[];
     original_exercise_id?: string;
@@ -118,15 +121,23 @@ export function useWorkoutLogging() {
 
                 if (logsError) throw logsError;
 
-                const exercises = (logsData || []).map(log => ({
-                    id: log.id,
-                    exercise_id: log.exercise_id,
-                    exercise_name: log.exercise_name,
-                    sets: log.sets_completed,
-                    reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
-                    weight: log.weight_per_set && log.weight_per_set.length > 0 ? log.weight_per_set[0] : null,
-                    notes: log.notes
-                }));
+                const exercises = (logsData || []).map(log => {
+                    const reps = typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set;
+                    const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
+                    const full = reps?.length ? [...wp].slice(0, reps.length) : [];
+                    const defaultW = full[0] ?? 0;
+                    const overrides = full.map((w, i) => (w !== defaultW ? w : undefined));
+                    return {
+                        id: log.id,
+                        exercise_id: log.exercise_id,
+                        exercise_name: log.exercise_name,
+                        sets: log.sets_completed,
+                        reps,
+                        weight: defaultW,
+                        weight_per_set: overrides.some(x => x !== undefined) ? overrides : undefined,
+                        notes: log.notes
+                    };
+                });
 
                 const existingSessionWithExercises: WorkoutSession = {
                     id: session.id,
@@ -233,7 +244,7 @@ export function useWorkoutLogging() {
             exercise_name: exerciseName,
             sets,
             reps,
-            weight,
+            weight: weight ?? 0,
             notes
         };
 
@@ -364,7 +375,7 @@ export function useWorkoutLogging() {
                     exercise_name: ex.exercise_name,
                     sets_completed: ex.sets,
                     reps_per_set: ex.reps,
-                    weight_per_set: ex.weight ? [ex.weight] : [],
+                    weight_per_set: ex.reps.map((_, i) => ex.weight_per_set?.[i] ?? ex.weight ?? 0),
                     notes: ex.notes || null,
                     exercise_order: index + 1
                 }));
@@ -388,7 +399,7 @@ export function useWorkoutLogging() {
                     exercise_name: ex.exercise_name,
                     sets_completed: ex.sets,
                     reps_per_set: ex.reps,
-                    weight_per_set: ex.weight ? [ex.weight] : [],
+                    weight_per_set: ex.reps.map((_, i) => ex.weight_per_set?.[i] ?? ex.weight ?? 0),
                     notes: ex.notes || null,
                     exercise_order: index + 1
                 }));
@@ -461,15 +472,23 @@ export function useWorkoutLogging() {
                     .eq('session_id', session.id)
                     .order('exercise_order', { ascending: true });
                 if (logsError) return;
-                const exercises: WorkoutExercise[] = (logsData || []).map(log => ({
-                    id: log.id,
-                    exercise_id: log.exercise_id,
-                    exercise_name: log.exercise_name,
-                    sets: log.sets_completed,
-                    reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
-                    weight: log.weight_per_set?.[0],
-                    notes: log.notes
-                }));
+                const exercises: WorkoutExercise[] = (logsData || []).map(log => {
+                    const reps = typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set;
+                    const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
+                    const full = reps?.length ? [...wp].slice(0, reps.length) : [];
+                    const defaultW = full[0] ?? 0;
+                    const overrides = full.map((w, i) => (w !== defaultW ? w : undefined));
+                    return {
+                        id: log.id,
+                        exercise_id: log.exercise_id,
+                        exercise_name: log.exercise_name,
+                        sets: log.sets_completed,
+                        reps,
+                        weight: defaultW,
+                        weight_per_set: overrides.some(x => x !== undefined) ? overrides : undefined,
+                        notes: log.notes
+                    };
+                });
                 const refreshed: WorkoutSession = {
                     id: row.id,
                     user_id: row.user_id,
