@@ -10,6 +10,10 @@ interface ExerciseHistoryProps {
     exerciseName: string;
     isOpen: boolean;
     onClose: () => void;
+    /** When set, show "last time for this day in program (programName)" */
+    programId?: string;
+    programName?: string;
+    dayName?: string;
 }
 
 interface WorkoutLog {
@@ -26,6 +30,7 @@ interface WorkoutLog {
     created_at: string;
     session_date?: string;
     session_name?: string;
+    workout_sessions?: { program_id?: string; day_name?: string };
 }
 
 interface ExerciseStats {
@@ -45,11 +50,15 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
     exerciseId,
     exerciseName,
     isOpen,
-    onClose
+    onClose,
+    programId,
+    programName,
+    dayName
 }) => {
     const { user } = useAuth();
     const [logs, setLogs] = useState<WorkoutLog[]>([]);
     const [stats, setStats] = useState<ExerciseStats | null>(null);
+    const [lastTimeForProgramDay, setLastTimeForProgramDay] = useState<WorkoutLog | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +66,33 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
         if (isOpen && exerciseId) {
             loadExerciseHistory();
         }
-    }, [isOpen, exerciseId]);
+    }, [isOpen, exerciseId, programId, dayName]);
+
+    const parseLog = (log: any): WorkoutLog => {
+        let parsedReps: number[] = [];
+        let parsedWeights: number[] = [];
+        try {
+            if (typeof log.reps_per_set === 'string') {
+                parsedReps = JSON.parse(log.reps_per_set);
+            } else if (Array.isArray(log.reps_per_set)) {
+                parsedReps = log.reps_per_set;
+            }
+            if (typeof log.weight_per_set === 'string') {
+                parsedWeights = JSON.parse(log.weight_per_set);
+            } else if (Array.isArray(log.weight_per_set)) {
+                parsedWeights = log.weight_per_set;
+            }
+        } catch (parseError) {
+            console.error('Error parsing data:', parseError);
+        }
+        return {
+            ...log,
+            reps_per_set: parsedReps,
+            weight_per_set: parsedWeights,
+            session_date: log.workout_sessions?.session_date,
+            session_name: log.workout_sessions?.session_name
+        };
+    };
 
     const loadExerciseHistory = async () => {
         if (!user) return;
@@ -65,63 +100,39 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
         try {
             setLoading(true);
             setError(null);
+            setLastTimeForProgramDay(null);
 
-            // Get all workout logs for this exercise, joined with session info
-            // Use the specific foreign key relationship name to avoid ambiguity
             const { data, error } = await supabase
                 .from('workout_logs')
                 .select(`
                     *,
                     workout_sessions!fk_workout_logs_session_id(
                         session_date,
-                        session_name
+                        session_name,
+                        program_id,
+                        day_name
                     )
                 `)
                 .eq('exercise_id', exerciseId)
                 .eq('workout_sessions.user_id', user.id)
+                // Only include finished workouts; exclude in-progress sessions created by auto-save
+                .not('workout_sessions.completed_at', 'is', null)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            // Parse the JSON arrays
-            const parsedLogs = (data || []).map(log => {
-                let parsedReps: number[] = [];
-                let parsedWeights: number[] = [];
-
-                try {
-                    if (typeof log.reps_per_set === 'string') {
-                        parsedReps = JSON.parse(log.reps_per_set);
-                    } else if (Array.isArray(log.reps_per_set)) {
-                        parsedReps = log.reps_per_set;
-                    } else {
-                        console.warn('Unexpected reps_per_set format:', log.reps_per_set);
-                        parsedReps = [];
-                    }
-
-                    if (typeof log.weight_per_set === 'string') {
-                        parsedWeights = JSON.parse(log.weight_per_set);
-                    } else if (Array.isArray(log.weight_per_set)) {
-                        parsedWeights = log.weight_per_set;
-                    } else {
-                        parsedWeights = [];
-                    }
-                } catch (parseError) {
-                    console.error('Error parsing data:', parseError);
-                    parsedReps = [];
-                    parsedWeights = [];
-                }
-
-                return {
-                    ...log,
-                    reps_per_set: parsedReps,
-                    weight_per_set: parsedWeights,
-                    session_date: log.workout_sessions?.session_date,
-                    session_name: log.workout_sessions?.session_name
-                };
-            });
-
+            const parsedLogs = (data || []).map(parseLog);
             setLogs(parsedLogs);
             calculateStats(parsedLogs);
+
+            if (programId && dayName) {
+                const match = parsedLogs.find(
+                    (log) =>
+                        log.workout_sessions?.program_id === programId &&
+                        log.workout_sessions?.day_name === dayName
+                );
+                if (match) setLastTimeForProgramDay(match);
+            }
         } catch (err) {
             console.error('Error loading exercise history:', err);
             setError('Failed to load exercise history');
@@ -250,17 +261,41 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                                 <StatCard label="Avg Weight" value={formatWeight(stats.averageWeight)} />
                                 <StatCard label="Avg Reps" value={stats.averageReps} />
                             </div>
-
-                            {/* Date Range */}
-                            <div className="mb-8 p-4 bg-gray-800 rounded-lg border border-gray-700">
-                                <div className="text-cyan-400 text-sm font-medium mb-2">Date Range</div>
-                                <div className="text-white">
-                                    <span className="text-gray-300">First workout:</span> {formatDate(stats.firstWorkout)} |
-                                    <span className="text-gray-300 ml-2">Last workout:</span> {formatDate(stats.lastWorkout)}
-                                </div>
-                            </div>
                         </>
                     )}
+
+                    {/* Last time overview: one card only. From program → prefer program-day; else overall. Hide when no history. */}
+                    {!loading && !error && logs.length > 0 && (() => {
+                        const inProgramContext = !!(programName && dayName);
+                        const showProgramDay = inProgramContext && lastTimeForProgramDay;
+                        const logToShow = showProgramDay ? lastTimeForProgramDay : logs[0];
+                        const title = showProgramDay
+                            ? `Last time for this day in program (${programName})`
+                            : 'Last time';
+                        return (
+                            <div className="mb-8 space-y-4">
+                                <h3 className="text-xl font-semibold text-white">Exercise history</h3>
+                                <div className="p-4 bg-cyan-900/20 border border-cyan-700/50 rounded-lg">
+                                    <div className="text-cyan-400 text-sm font-medium mb-2">{title}</div>
+                                    <div className="text-gray-300 text-sm mb-2">
+                                        {logToShow.session_name || `Workout on ${formatDate(logToShow.session_date || logToShow.created_at)}`}
+                                        {' · '}{formatDate(logToShow.session_date || logToShow.created_at)}
+                                    </div>
+                                    <div className="text-cyan-400 text-xs font-medium mb-1">Weight</div>
+                                    <div className="space-y-1 text-sm">
+                                        {Array.isArray(logToShow.reps_per_set) ? logToShow.reps_per_set.map((reps, index) => (
+                                            <div key={index} className="text-white">
+                                                Set {index + 1}: {reps} reps
+                                                {logToShow.weight_per_set?.[index] ? ` ${logToShow.weight_per_set[index]} kg` : ''}
+                                            </div>
+                                        )) : (
+                                            <div className="text-gray-400">No set details</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Workout History */}
                     {!loading && !error && logs.length > 0 && (
@@ -313,6 +348,17 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                             title="No workout history found for this exercise."
                             description="Start logging workouts to see your progress!"
                         />
+                    )}
+
+                    {/* Date Range (bottom of modal) */}
+                    {!loading && !error && stats && (
+                        <div className="mt-8 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                            <div className="text-cyan-400 text-sm font-medium mb-2">Date Range</div>
+                            <div className="text-white">
+                                <span className="text-gray-300">First workout:</span> {formatDate(stats.firstWorkout)} |
+                                <span className="text-gray-300 ml-2">Last workout:</span> {formatDate(stats.lastWorkout)}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

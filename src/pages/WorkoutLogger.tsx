@@ -909,6 +909,9 @@ export default function WorkoutLogger() {
                                                 exerciseId={exercise.exercise_id}
                                                 exerciseName={exercise.exercise_name}
                                                 variant="icon"
+                                                programId={currentSession?.session_type === 'program' ? currentSession.program_id : undefined}
+                                                programName={currentSession?.session_type === 'program' && activeProgram ? activeProgram.name : undefined}
+                                                dayName={currentSession?.day_name}
                                             />
                                             <button
                                                 onClick={() => handleRemoveExercise(exercise.id)}
