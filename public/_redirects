@@ -1,0 +1,2 @@
+# SPA fallback: serve index.html for client routes (e.g. /log-workout, /history) so refresh doesn't 404
+/*    /index.html   200
