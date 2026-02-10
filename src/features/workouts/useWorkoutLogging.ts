@@ -126,7 +126,7 @@ export function useWorkoutLogging() {
                     const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
                     const full = reps?.length ? [...wp].slice(0, reps.length) : [];
                     const defaultW = full[0] ?? 0;
-                    const overrides = full.map((w, i) => (w !== defaultW ? w : undefined));
+                    const overrides = full.map(w => (w !== defaultW ? w : undefined));
                     return {
                         id: log.id,
                         exercise_id: log.exercise_id,
@@ -477,7 +477,7 @@ export function useWorkoutLogging() {
                     const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
                     const full = reps?.length ? [...wp].slice(0, reps.length) : [];
                     const defaultW = full[0] ?? 0;
-                    const overrides = full.map((w, i) => (w !== defaultW ? w : undefined));
+                    const overrides = full.map(w => (w !== defaultW ? w : undefined));
                     return {
                         id: log.id,
                         exercise_id: log.exercise_id,
