@@ -281,7 +281,6 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                                         {logToShow.session_name || `Workout on ${formatDate(logToShow.session_date || logToShow.created_at)}`}
                                         {' · '}{formatDate(logToShow.session_date || logToShow.created_at)}
                                     </div>
-                                    <div className="text-cyan-400 text-xs font-medium mb-1">Weight</div>
                                     <div className="space-y-1 text-sm">
                                         {Array.isArray(logToShow.reps_per_set) ? logToShow.reps_per_set.map((reps, index) => (
                                             <div key={index} className="text-white">
