@@ -387,15 +387,23 @@ export default function WorkoutHistory() {
 
             if (error) throw error;
 
-            const exercises = (logsData || []).map(log => ({
-                id: log.id,
-                exercise_id: log.exercise_id,
-                exercise_name: log.exercise_name,
-                sets: log.sets_completed,
-                reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
-                weight: log.weight_per_set && log.weight_per_set.length > 0 ? log.weight_per_set[0] : null,
-                notes: log.notes
-            }));
+            const exercises = (logsData || []).map(log => {
+                const reps = typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set;
+                const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
+                const full = reps?.length ? [...wp].slice(0, reps.length) : [];
+                const defaultW = full[0] ?? 0;
+                const overrides = full.map((w: number) => (w !== defaultW ? w : undefined));
+                return {
+                    id: log.id,
+                    exercise_id: log.exercise_id,
+                    exercise_name: log.exercise_name,
+                    sets: log.sets_completed,
+                    reps,
+                    weight: defaultW,
+                    weight_per_set: overrides.some((x: undefined | number) => x !== undefined) ? overrides : undefined,
+                    notes: log.notes
+                };
+            });
 
             return {
                 id: session.id,
@@ -656,23 +664,29 @@ export default function WorkoutHistory() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                                <div>
-                                                    <span className="text-gray-400">Sets:</span>
-                                                    <span className="text-white ml-2">{log.sets_completed}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-400">Weight:</span>
-                                                    <span className="text-white ml-2">
-                                                        {log.weight_per_set && log.weight_per_set.length > 0 ? `${log.weight_per_set[0]} kg` : 'Bodyweight'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-400">Reps:</span>
-                                                    <span className="text-white ml-2">
-                                                        {log.reps_per_set ? log.reps_per_set.join(', ') : 'N/A'}
-                                                    </span>
-                                                </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full min-w-[200px] text-sm">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-600">
+                                                            <th className="text-left text-cyan-400 font-medium py-2 pr-4">Set</th>
+                                                            <th className="text-left text-cyan-400 font-medium py-2 pr-4">Weight (kg)</th>
+                                                            <th className="text-left text-cyan-400 font-medium py-2 pr-4">Reps</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {Array.from({ length: log.sets_completed }).map((_, i) => (
+                                                            <tr key={i} className="border-b border-gray-700/50">
+                                                                <td className="text-gray-300 py-1.5 pr-4">{i + 1}</td>
+                                                                <td className="text-white py-1.5 pr-4">
+                                                                    {log.weight_per_set?.[i] != null && log.weight_per_set[i] > 0
+                                                                        ? `${log.weight_per_set[i]} kg`
+                                                                        : 'Bodyweight'}
+                                                                </td>
+                                                                <td className="text-white py-1.5">{log.reps_per_set?.[i] ?? '–'}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
 
                                             {log.notes && (

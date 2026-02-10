@@ -6,13 +6,20 @@ interface ExerciseHistoryButtonProps {
     exerciseName: string;
     variant?: 'button' | 'text' | 'icon';
     className?: string;
+    /** When logging in a program, pass these so history shows "last time for this day in program" */
+    programId?: string;
+    programName?: string;
+    dayName?: string;
 }
 
 export const ExerciseHistoryButton: React.FC<ExerciseHistoryButtonProps> = ({
     exerciseId,
     exerciseName,
     variant = 'button',
-    className = ''
+    className = '',
+    programId,
+    programName,
+    dayName
 }) => {
     const [showHistory, setShowHistory] = useState(false);
 
@@ -66,6 +73,9 @@ export const ExerciseHistoryButton: React.FC<ExerciseHistoryButtonProps> = ({
                 exerciseName={exerciseName}
                 isOpen={showHistory}
                 onClose={() => setShowHistory(false)}
+                programId={programId}
+                programName={programName}
+                dayName={dayName}
             />
         </>
     );

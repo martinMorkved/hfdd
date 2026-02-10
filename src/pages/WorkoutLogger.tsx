@@ -207,15 +207,23 @@ export default function WorkoutLogger() {
                 .eq('session_id', inProgressSession.id)
                 .order('exercise_order', { ascending: true });
             if (error) throw error;
-            const exercises = (logsData || []).map((log: { id: string; exercise_id: string; exercise_name: string; sets_completed: number; reps_per_set: number[] | string; weight_per_set?: number[]; notes?: string }) => ({
-                id: log.id,
-                exercise_id: log.exercise_id,
-                exercise_name: log.exercise_name,
-                sets: log.sets_completed,
-                reps: typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set,
-                weight: log.weight_per_set?.[0],
-                notes: log.notes
-            }));
+            const exercises = (logsData || []).map((log: { id: string; exercise_id: string; exercise_name: string; sets_completed: number; reps_per_set: number[] | string; weight_per_set?: number[]; notes?: string }) => {
+                const reps = typeof log.reps_per_set === 'string' ? JSON.parse(log.reps_per_set) : log.reps_per_set;
+                const wp = Array.isArray(log.weight_per_set) ? log.weight_per_set : [];
+                const full = reps?.length ? [...wp].slice(0, reps.length) : [];
+                const defaultW = full[0] ?? 0;
+                const overrides = full.map((w: number) => (w !== defaultW ? w : undefined));
+                return {
+                    id: log.id,
+                    exercise_id: log.exercise_id,
+                    exercise_name: log.exercise_name,
+                    sets: log.sets_completed,
+                    reps,
+                    weight: defaultW,
+                    weight_per_set: overrides.some((x: undefined | number) => x !== undefined) ? overrides : undefined,
+                    notes: log.notes
+                };
+            });
             const sessionData = {
                 id: inProgressSession.id,
                 user_id: inProgressSession.user_id,
@@ -909,6 +917,9 @@ export default function WorkoutLogger() {
                                                 exerciseId={exercise.exercise_id}
                                                 exerciseName={exercise.exercise_name}
                                                 variant="icon"
+                                                programId={currentSession?.session_type === 'program' ? currentSession.program_id : undefined}
+                                                programName={currentSession?.session_type === 'program' && activeProgram ? activeProgram.name : undefined}
+                                                dayName={currentSession?.day_name}
                                             />
                                             <button
                                                 onClick={() => handleRemoveExercise(exercise.id)}
@@ -949,72 +960,90 @@ export default function WorkoutLogger() {
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-gray-400 text-sm mb-1">Weight (kg)</label>
-                                            <NumberInput
-                                                value={exercise.weight || 0}
-                                                onChange={(value) => handleUpdateExercise(exercise.id, { weight: value })}
-                                                min={0}
-                                                step={0.5}
-                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-gray-400 text-sm mb-1">Notes</label>
-                                            <TextInput
-                                                variant="auth"
-                                                value={exercise.notes || ''}
-                                                onChange={(e) => handleUpdateExercise(exercise.id, { notes: e.target.value })}
-                                                className="px-3 py-2"
-                                                placeholder="Optional notes..."
-                                            />
-                                        </div>
+                                    <div>
+                                        <label className="block text-gray-400 text-sm mb-1">Notes</label>
+                                        <TextInput
+                                            variant="auth"
+                                            value={exercise.notes || ''}
+                                            onChange={(e) => handleUpdateExercise(exercise.id, { notes: e.target.value })}
+                                            className="px-3 py-2"
+                                            placeholder="Optional notes..."
+                                        />
                                     </div>
 
                                     <div className="mt-4">
-                                        <div className="flex gap-2 flex-wrap items-end">
-                                            {exercise.reps.map((rep, repIndex) => (
-                                                <div key={repIndex} className="flex flex-col">
-                                                    <span className="text-gray-400 text-sm mb-1">Set {repIndex + 1}:</span>
-                                                    <div className="flex items-center gap-1">
-                                                        <NumberInput
-                                                            value={rep}
-                                                            onChange={(value) => {
-                                                                const newReps = [...exercise.reps];
-                                                                newReps[repIndex] = value;
-                                                                handleUpdateExercise(exercise.id, { reps: newReps });
-                                                            }}
-                                                            min={1}
-                                                            className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
-                                                        />
-                                                        {exercise.reps.length > 1 && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    const newReps = exercise.reps.filter((_, i) => i !== repIndex);
-                                                                    handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length });
-                                                                }}
-                                                                className="text-gray-500 hover:text-red-400 transition text-lg leading-none"
-                                                                title="Remove set"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <button
-                                                onClick={() => {
-                                                    const lastRep = exercise.reps[exercise.reps.length - 1] || 10;
-                                                    const newReps = [...exercise.reps, lastRep];
-                                                    handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length });
-                                                }}
-                                                className="w-10 h-8 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition text-xl font-bold flex items-center justify-center"
-                                                title="Add set"
-                                            >
-                                                +
-                                            </button>
+                                        <div className="text-gray-400 text-xs mb-1">0 = bodyweight</div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full min-w-[200px]">
+                                                <thead>
+                                                    <tr className="border-b border-gray-600">
+                                                        <th className="text-left text-cyan-400 text-sm font-medium py-2 pr-3">Weight (kg)</th>
+                                                        <th className="text-left text-cyan-400 text-sm font-medium py-2 pr-3">Reps</th>
+                                                        <th className="w-8"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {exercise.reps.map((rep, repIndex) => (
+                                                        <tr key={repIndex} className="border-b border-gray-700/50">
+                                                            <td className="py-1.5 pr-3">
+                                                                <NumberInput
+                                                                    value={exercise.weight_per_set?.[repIndex] ?? exercise.weight ?? 0}
+                                                                    onChange={(value) => {
+                                                                        const prev = exercise.weight_per_set ?? [];
+                                                                        const next = [...prev];
+                                                                        while (next.length <= repIndex) next.push(undefined);
+                                                                        next[repIndex] = value;
+                                                                        handleUpdateExercise(exercise.id, { weight_per_set: next });
+                                                                    }}
+                                                                    min={0}
+                                                                    step={0.5}
+                                                                    className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                />
+                                                            </td>
+                                                            <td className="py-1.5 pr-3">
+                                                                <NumberInput
+                                                                    value={rep}
+                                                                    onChange={(value) => {
+                                                                        const newReps = [...exercise.reps];
+                                                                        newReps[repIndex] = value;
+                                                                        handleUpdateExercise(exercise.id, { reps: newReps });
+                                                                    }}
+                                                                    min={1}
+                                                                    className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                />
+                                                            </td>
+                                                            <td className="py-1.5">
+                                                                {exercise.reps.length > 1 ? (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newReps = exercise.reps.filter((_, i) => i !== repIndex);
+                                                                            const newWeights = (exercise.weight_per_set ?? []).filter((_, i) => i !== repIndex);
+                                                                            handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length, weight_per_set: newWeights.length ? newWeights : undefined });
+                                                                        }}
+                                                                        className="text-gray-500 hover:text-red-400 transition text-lg leading-none p-0.5"
+                                                                        title="Remove set"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                ) : null}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
+                                        <button
+                                            onClick={() => {
+                                                const lastRep = exercise.reps[exercise.reps.length - 1] || 10;
+                                                const newReps = [...exercise.reps, lastRep];
+                                                handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length });
+                                            }}
+                                            className="mt-2 flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 text-sm font-medium transition"
+                                            title="Add set"
+                                        >
+                                            <span className="w-6 h-6 rounded bg-cyan-600/30 flex items-center justify-center text-lg">+</span>
+                                            Add set
+                                        </button>
                                     </div>
                                 </div>
                             ))
