@@ -75,6 +75,7 @@ export default function WorkoutLogger() {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [inProgressSession, setInProgressSession] = useState<{ id: string; session_name: string; session_type: string; session_date: string; user_id: string; program_id?: string; week_number?: number; day_name?: string } | null>(null);
     const [inProgressLoading, setInProgressLoading] = useState(false);
+    const [finishSaveError, setFinishSaveError] = useState<string | null>(null);
     // Mobile layout detection
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 767px)");
@@ -391,13 +392,16 @@ export default function WorkoutLogger() {
     };
 
     const handleFinishWorkout = async () => {
+        if (!currentSession) return;
+        setFinishSaveError(null);
         try {
-            await saveSession();
+            await saveSession(currentSession);
             clearSession();
             const fromHistory = !!location.state?.editSession;
             navigate(fromHistory ? '/history' : '/');
         } catch (error) {
             console.error('Error finishing workout:', error);
+            setFinishSaveError('Save failed. Check your connection and try again.');
         }
     };
 
@@ -507,17 +511,20 @@ export default function WorkoutLogger() {
                                 Delete
                             </Button>
                         )}
+                        {finishSaveError && (
+                            <p className="w-full text-red-400 text-sm">{finishSaveError}</p>
+                        )}
                         {currentSession && (
                             <Button
                                 onClick={handleFinishWorkout}
                                 variant="success"
-                                icon={<CheckIcon size={18} />}
-                                disabled={currentSession.exercises.length === 0}
+                                icon={loading ? undefined : <CheckIcon size={18} />}
+                                disabled={currentSession.exercises.length === 0 || loading}
                                 title={currentSession.exercises.length === 0 ? 'Add at least one exercise to finish' : ''}
                             >
-                                {location.state?.editSession
+                                {loading ? 'Saving...' : (location.state?.editSession
                                     ? (location.state?.editSessionInProgress ? 'Finish Workout' : 'Save Changes')
-                                    : 'Finish Workout'}
+                                    : 'Finish Workout')}
                             </Button>
                         )}
                     </div>

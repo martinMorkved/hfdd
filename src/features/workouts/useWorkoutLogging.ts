@@ -410,15 +410,17 @@ export function useWorkoutLogging() {
         }
     };
 
-    const saveSession = async (): Promise<string> => {
-        if (!currentSession || !user) throw new Error('No active session');
+    /** Persist session to DB and mark completed. Pass explicit session to save the exact snapshot (e.g. from UI at "Finish" click). */
+    const saveSession = async (sessionOverride?: WorkoutSession | null): Promise<string> => {
+        const sessionToSave = sessionOverride ?? currentSession;
+        if (!sessionToSave || !user) throw new Error('No active session');
 
         setLoading(true);
         try {
-            const isNewSession = currentSession.id?.startsWith('temp-');
-            const newId = await persistSessionToDb(currentSession, true);
+            const isNewSession = sessionToSave.id?.startsWith('temp-');
+            const newId = await persistSessionToDb(sessionToSave, true);
             if (isNewSession && newId) return newId;
-            return currentSession.id!;
+            return sessionToSave.id!;
         } catch (error) {
             console.error('Error saving session:', error);
             throw error;
