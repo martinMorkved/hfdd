@@ -518,6 +518,20 @@ export function useWorkoutLogging() {
         }
     };
 
+    /** Clear local session and, if it was already persisted (auto-save), remove it from DB so it doesn't show as "workout in progress". */
+    const abandonSession = async (): Promise<void> => {
+        const session = currentSession;
+        if (session?.id && !session.id.startsWith('temp-')) {
+            try {
+                await supabase.from('workout_logs').delete().eq('session_id', session.id);
+                await supabase.from('workout_sessions').delete().eq('id', session.id);
+            } catch (err) {
+                console.error('Failed to remove abandoned session from DB:', err);
+            }
+        }
+        clearSession();
+    };
+
     return {
         loading,
         currentSession,
@@ -530,6 +544,7 @@ export function useWorkoutLogging() {
         removeExerciseFromSession,
         saveSession,
         clearSession,
+        abandonSession,
         checkForExistingSession,
         swapExerciseAlternative
     };

@@ -35,6 +35,7 @@ export default function WorkoutLogger() {
         removeExerciseFromSession,
         saveSession,
         clearSession,
+        abandonSession,
         swapExerciseAlternative
     } = useWorkoutLogging();
 
@@ -488,8 +489,8 @@ export default function WorkoutLogger() {
                 actions={
                     <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0">
                         <Button
-                            onClick={() => {
-                                clearSession();
+                            onClick={async () => {
+                                await abandonSession();
                                 navigate(location.state?.editSession ? '/history' : '/');
                             }}
                             variant="secondary"
