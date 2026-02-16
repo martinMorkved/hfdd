@@ -94,6 +94,7 @@ export function usePreviousLiftsForSession(
             return;
         }
 
+        const userId = user.id;
         let cancelled = false;
 
         async function load() {
@@ -116,7 +117,7 @@ export function usePreviousLiftsForSession(
                     `
                     )
                     .in('exercise_id', exerciseIds)
-                    .eq('workout_sessions.user_id', user.id)
+                    .eq('workout_sessions.user_id', userId)
                     .not('workout_sessions.completed_at', 'is', null)
                     .order('created_at', { ascending: false })
                     .limit(500);
