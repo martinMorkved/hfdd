@@ -142,6 +142,9 @@ export default function WorkoutProgram() {
     // Mobile: add-exercise full-screen target (week + day) and selected exercise ids for multi-add
     const [addExerciseTarget, setAddExerciseTarget] = useState<{ weekNumber: number; dayName: string } | null>(null);
     const [addExerciseSelectedIds, setAddExerciseSelectedIds] = useState<Set<string>>(new Set());
+    // Mobile: collapsible weeks and days (Set of week numbers / "weekNumber-dayId" that are collapsed)
+    const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
+    const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
     // "+ New program" with unsaved changes: show Save / Cancel / Create without saving
     const [showNewProgramConfirmModal, setShowNewProgramConfirmModal] = useState(false);
     // When user chose "Create without saving", don't auto-select from location even if selectedProgramId is still set
@@ -476,16 +479,34 @@ export default function WorkoutProgram() {
 
                                     {/* Weeks */}
                                     <div className="space-y-8">
-                                        {currentProgram.weeks.map(week => (
+                                        {currentProgram.weeks.map(week => {
+                                            const weekCollapsed = isMobile && collapsedWeeks.has(week.weekNumber);
+                                            return (
                                             <div key={week.weekNumber} className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-xl font-bold text-cyan-400">{getWeekLabel(currentProgram.structure, week.weekNumber)}</h3>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => isMobile && setCollapsedWeeks(prev => {
+                                                            const next = new Set(prev);
+                                                            if (next.has(week.weekNumber)) next.delete(week.weekNumber);
+                                                            else next.add(week.weekNumber);
+                                                            return next;
+                                                        })}
+                                                        className={`flex items-center gap-2 min-w-0 ${isMobile ? 'cursor-pointer' : 'cursor-default'}`}
+                                                    >
+                                                        {isMobile && (
+                                                            <span className="shrink-0 text-cyan-400">
+                                                                {weekCollapsed ? <ChevronDownIcon size={20} className="rotate-[-90deg]" /> : <ChevronDownIcon size={20} />}
+                                                            </span>
+                                                        )}
+                                                        <h3 className="text-xl font-bold text-cyan-400 truncate">{getWeekLabel(currentProgram.structure, week.weekNumber)}</h3>
+                                                    </button>
                                                     {/* Remove cycle (rotating only, when more than one cycle) */}
                                                     {currentProgram.structure === "rotating" && currentProgram.weeks.length > 1 && (
                                                         <button
                                                             type="button"
-                                                            onClick={() => setRemoveCycleWeekNumber(week.weekNumber)}
-                                                            className="px-3 py-1.5 text-sm rounded-lg border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                            onClick={(e) => { e.stopPropagation(); setRemoveCycleWeekNumber(week.weekNumber); }}
+                                                            className="px-3 py-1.5 text-sm rounded-lg border border-red-500/60 text-red-400 hover:bg-red-900/30 transition shrink-0"
                                                         >
                                                             Remove cycle
                                                         </button>
@@ -493,8 +514,13 @@ export default function WorkoutProgram() {
                                                 </div>
 
                                                 {/* Days */}
+                                                {!weekCollapsed && (
+                                                <>
                                                 <div className="space-y-6">
-                                                    {week.days.map(day => (
+                                                    {week.days.map(day => {
+                                                        const dayKey = `${week.weekNumber}-${day.id}`;
+                                                        const dayCollapsed = isMobile && collapsedDays.has(dayKey);
+                                                        return (
                                                         <div
                                                             key={day.id}
                                                             className={`rounded-lg p-6 border transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
@@ -505,9 +531,26 @@ export default function WorkoutProgram() {
                                                             onDragLeave={() => { handleDragLeave(); setDropTargetReorder(null); }}
                                                             onDrop={!day.is_rest_day ? () => { handleDrop(week.weekNumber, day.name); setDropTargetReorder(null); } : undefined}
                                                         >
-                                                            <div className="flex items-center justify-between mb-6">
+                                                            <div
+                                                                className={`flex items-center justify-between ${dayCollapsed ? '' : 'mb-6'}`}
+                                                                onClick={() => isMobile && setCollapsedDays(prev => {
+                                                                    const next = new Set(prev);
+                                                                    if (next.has(dayKey)) next.delete(dayKey);
+                                                                    else next.add(dayKey);
+                                                                    return next;
+                                                                })}
+                                                                role={isMobile ? "button" : undefined}
+                                                                tabIndex={isMobile ? 0 : undefined}
+                                                                onKeyDown={isMobile ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCollapsedDays(prev => { const next = new Set(prev); if (next.has(dayKey)) next.delete(dayKey); else next.add(dayKey); return next; }); } } : undefined}
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                    {isMobile && (
+                                                                        <span className="shrink-0 text-cyan-400">
+                                                                            {dayCollapsed ? <ChevronDownIcon size={18} className="rotate-[-90deg]" /> : <ChevronDownIcon size={18} />}
+                                                                        </span>
+                                                                    )}
                                                                 {editingDayId === day.id ? (
-                                                                    <div className="relative flex-1 max-w-xs">
+                                                                    <div className="relative flex-1 max-w-xs" onClick={(e) => e.stopPropagation()}>
                                                                         <TextInput
                                                                             variant="auth"
                                                                             value={editingDayName}
@@ -534,7 +577,8 @@ export default function WorkoutProgram() {
                                                                 ) : (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => {
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             setEditingDayId(day.id);
                                                                             setEditingDayName(day.name);
                                                                         }}
@@ -544,20 +588,21 @@ export default function WorkoutProgram() {
                                                                         <EditIcon size={18} className="text-gray-400 opacity-70 group-hover:opacity-100 transition" />
                                                                     </button>
                                                                 )}
-                                                                <div className="flex items-center gap-3 flex-wrap">
+                                                                </div>
+                                                                <div className="flex items-center gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
                                                                     {/* Remove day (rotating: any day when >1; weekly: only Extra N) */}
                                                                     {(
                                                                         (currentProgram.structure === "rotating" && week.days.length > 1) ||
                                                                         (currentProgram.structure === "weekly" && day.name.startsWith("Extra "))
                                                                     ) && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setRemoveDayInfo({ weekNumber: week.weekNumber, dayId: day.id, dayName: day.name })}
-                                                                                className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
-                                                                            >
-                                                                                Remove day
-                                                                            </button>
-                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setRemoveDayInfo({ weekNumber: week.weekNumber, dayId: day.id, dayName: day.name })}
+                                                                            className="text-sm px-2 py-1 rounded border border-red-500/60 text-red-400 hover:bg-red-900/30 transition"
+                                                                        >
+                                                                            Remove day
+                                                                        </button>
+                                                                    )}
                                                                     {!isMobile && !day.is_rest_day && (
                                                                         <span className={`text-sm transition-colors ${dragOverDay?.weekNumber === week.weekNumber && dragOverDay?.dayName === day.name
                                                                             ? 'text-cyan-300 font-medium'
@@ -572,6 +617,8 @@ export default function WorkoutProgram() {
                                                                 </div>
                                                             </div>
 
+                                                            {!dayCollapsed && (
+                                                            <>
                                                             {day.is_rest_day ? (
                                                                 <div className="flex flex-col items-center justify-center py-8 gap-4">
                                                                     <label className="flex flex-col items-center gap-3 cursor-pointer group">
@@ -797,8 +844,11 @@ export default function WorkoutProgram() {
                                                                     + Add exercise
                                                                 </button>
                                                             )}
+                                                            </>
+                                                            )}
                                                         </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
 
                                                 {/* Add Day button (weekly: extra days; rotating: Day D, E, F…) */}
@@ -813,8 +863,11 @@ export default function WorkoutProgram() {
                                                         </button>
                                                     </div>
                                                 )}
+                                                </>
+                                                )}
                                             </div>
-                                        ))}
+                                        );
+                                        })}
 
                                         {/* Add Week Button */}
                                         {shouldShowAddWeekButton(currentProgram.structure) && (
