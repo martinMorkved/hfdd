@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
+import { usePreviousLiftsForSession, formatPreviousSet } from '../features/workouts/usePreviousLift';
 import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
@@ -36,6 +37,8 @@ export default function WorkoutLogger() {
         clearSession,
         swapExerciseAlternative
     } = useWorkoutLogging();
+
+    const { previousLifts } = usePreviousLiftsForSession(currentSession ?? null);
 
     const isProgramFlow = location.state?.sessionType === 'program';
 
@@ -974,61 +977,82 @@ export default function WorkoutLogger() {
                                     <div className="mt-4">
                                         <div className="text-gray-400 text-xs mb-1">0 = bodyweight</div>
                                         <div className="overflow-x-auto">
-                                            <table className="w-full min-w-[200px]">
+                                            <table className="w-full min-w-[280px]">
                                                 <thead>
                                                     <tr className="border-b border-gray-600">
+                                                        <th className="text-left text-cyan-400/90 text-xs font-medium py-2 pr-3 w-0 whitespace-nowrap">Last</th>
                                                         <th className="text-left text-cyan-400 text-sm font-medium py-2 pr-3">Weight (kg)</th>
                                                         <th className="text-left text-cyan-400 text-sm font-medium py-2 pr-3">Reps</th>
                                                         <th className="w-8"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {exercise.reps.map((rep, repIndex) => (
-                                                        <tr key={repIndex} className="border-b border-gray-700/50">
-                                                            <td className="py-1.5 pr-3">
-                                                                <NumberInput
-                                                                    value={exercise.weight_per_set?.[repIndex] ?? exercise.weight ?? 0}
-                                                                    onChange={(value) => {
-                                                                        const prev = exercise.weight_per_set ?? [];
-                                                                        const next = [...prev];
-                                                                        while (next.length <= repIndex) next.push(undefined);
-                                                                        next[repIndex] = value;
-                                                                        handleUpdateExercise(exercise.id, { weight_per_set: next });
-                                                                    }}
-                                                                    min={0}
-                                                                    step={0.5}
-                                                                    className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
-                                                                />
-                                                            </td>
-                                                            <td className="py-1.5 pr-3">
-                                                                <NumberInput
-                                                                    value={rep}
-                                                                    onChange={(value) => {
-                                                                        const newReps = [...exercise.reps];
-                                                                        newReps[repIndex] = value;
-                                                                        handleUpdateExercise(exercise.id, { reps: newReps });
-                                                                    }}
-                                                                    min={1}
-                                                                    className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
-                                                                />
-                                                            </td>
-                                                            <td className="py-1.5">
-                                                                {exercise.reps.length > 1 ? (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newReps = exercise.reps.filter((_, i) => i !== repIndex);
-                                                                            const newWeights = (exercise.weight_per_set ?? []).filter((_, i) => i !== repIndex);
-                                                                            handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length, weight_per_set: newWeights.length ? newWeights : undefined });
-                                                                        }}
-                                                                        className="text-gray-500 hover:text-red-400 transition text-lg leading-none p-0.5"
-                                                                        title="Remove set"
-                                                                    >
-                                                                        ×
-                                                                    </button>
-                                                                ) : null}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {(() => {
+                                                        const prevLog = previousLifts[exercise.exercise_id];
+                                                        const prevSetCount = prevLog?.reps_per_set?.length ?? 0;
+                                                        const rowCount = Math.max(exercise.reps.length, prevSetCount);
+                                                        return Array.from({ length: rowCount }, (_, repIndex) => {
+                                                            const prevSet = formatPreviousSet(prevLog, repIndex);
+                                                            const isCurrentSet = repIndex < exercise.reps.length;
+                                                            return (
+                                                                <tr key={repIndex} className="border-b border-gray-700/50">
+                                                                    <td className="py-1.5 pr-3 text-gray-400 text-xs align-middle w-0 whitespace-nowrap">
+                                                                        {prevSet ?? '—'}
+                                                                    </td>
+                                                                    <td className="py-1.5 pr-3">
+                                                                        {isCurrentSet ? (
+                                                                            <NumberInput
+                                                                                value={exercise.weight_per_set?.[repIndex] ?? exercise.weight ?? 0}
+                                                                                onChange={(value) => {
+                                                                                    const prev = exercise.weight_per_set ?? [];
+                                                                                    const next = [...prev];
+                                                                                    while (next.length <= repIndex) next.push(undefined);
+                                                                                    next[repIndex] = value;
+                                                                                    handleUpdateExercise(exercise.id, { weight_per_set: next });
+                                                                                }}
+                                                                                min={0}
+                                                                                step={0.5}
+                                                                                className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                            />
+                                                                        ) : (
+                                                                            <span className="text-gray-500 text-xs">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="py-1.5 pr-3">
+                                                                        {isCurrentSet ? (
+                                                                            <NumberInput
+                                                                                value={exercise.reps[repIndex]}
+                                                                                onChange={(value) => {
+                                                                                    const newReps = [...exercise.reps];
+                                                                                    newReps[repIndex] = value;
+                                                                                    handleUpdateExercise(exercise.id, { reps: newReps });
+                                                                                }}
+                                                                                min={1}
+                                                                                className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
+                                                                            />
+                                                                        ) : (
+                                                                            <span className="text-gray-500 text-xs">—</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="py-1.5">
+                                                                        {isCurrentSet && exercise.reps.length > 1 ? (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const newReps = exercise.reps.filter((_, i) => i !== repIndex);
+                                                                                    const newWeights = (exercise.weight_per_set ?? []).filter((_, i) => i !== repIndex);
+                                                                                    handleUpdateExercise(exercise.id, { reps: newReps, sets: newReps.length, weight_per_set: newWeights.length ? newWeights : undefined });
+                                                                                }}
+                                                                                className="text-gray-500 hover:text-red-400 transition text-lg leading-none p-0.5"
+                                                                                title="Remove set"
+                                                                            >
+                                                                                ×
+                                                                            </button>
+                                                                        ) : null}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        });
+                                                    })()}
                                                 </tbody>
                                             </table>
                                         </div>

@@ -273,7 +273,7 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                             ? `Last time for this day in program (${programName})`
                             : 'Last time';
                         return (
-                            <div className="mb-8 space-y-4">
+                            <div className="mb-4 space-y-4">
                                 <h3 className="text-xl font-semibold text-white">Exercise history</h3>
                                 <div className="p-4 bg-cyan-900/20 border border-cyan-700/50 rounded-lg">
                                     <div className="text-cyan-400 text-sm font-medium mb-2">{title}</div>
@@ -296,24 +296,18 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                         );
                     })()}
 
-                    {/* Workout History */}
+                    {/* Full history list (no separate title – flows from "Last time" card above) */}
                     {!loading && !error && logs.length > 0 && (
-                        <div>
-                            <h3 className="text-xl font-semibold text-white mb-4">Workout History</h3>
-                            <div className="space-y-4">
+                        <div className="space-y-4">
                                 {logs.map((log) => (
                                     <div key={log.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="text-white font-medium">
+                                        <div className="flex flex-col gap-0.5 mb-2 sm:flex-row sm:justify-between sm:items-start">
+                                            <div className="text-white font-medium min-w-0">
                                                 {log.session_name || `Workout on ${formatDate(log.session_date || log.created_at)}`}
                                             </div>
-                                            <div className="text-gray-400 text-sm">
+                                            <div className="text-gray-400 text-sm sm:shrink-0">
                                                 {formatDate(log.created_at)}
                                             </div>
-                                        </div>
-
-                                        <div className="text-gray-300 text-sm mb-2">
-                                            {log.sets_completed} sets completed
                                         </div>
 
                                         {/* Sets Details */}
@@ -338,7 +332,6 @@ export const ExerciseHistory: React.FC<ExerciseHistoryProps> = ({
                                         )}
                                     </div>
                                 ))}
-                            </div>
                         </div>
                     )}
 
