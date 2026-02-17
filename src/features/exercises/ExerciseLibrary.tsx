@@ -11,6 +11,7 @@ import { ExerciseHistoryButton } from "./ExerciseHistoryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { DumbbellIcon, PlusIcon } from "../../components/icons";
 import type { Exercise } from "./types";
+import { checkExerciseContent } from "./contentCheck";
 
 export const ExerciseLibrary: React.FC = () => {
     const { user } = useAuth();
@@ -82,7 +83,18 @@ export const ExerciseLibrary: React.FC = () => {
         e.preventDefault();
         if (!name.trim()) return;
 
+        const contentError = checkExerciseContent({
+            name: name.trim(),
+            description: description.trim() || null,
+            muscle_group: selectedMuscleGroups.length > 0 ? selectedMuscleGroups.join(', ') : null,
+        });
+        if (contentError) {
+            setError(contentError);
+            return;
+        }
+
         try {
+            setError(null);
             const { data, error } = await supabase
                 .from('exercises')
                 .insert([
