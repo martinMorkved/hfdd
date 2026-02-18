@@ -41,6 +41,16 @@ export type ProgramDayExercise = {
 
 const SESSION_STORAGE_KEY = 'hfdd_workout_in_progress';
 
+/** Module-level: session IDs we must never persist (e.g. user just deleted). Shared so every hook instance's save-on-leave skips. */
+const deletedSessionIds = new Set<string>();
+function markSessionDeleted(id: string) {
+    deletedSessionIds.add(id);
+    setTimeout(() => deletedSessionIds.delete(id), 10000);
+}
+function isSessionDeleted(id: string) {
+    return deletedSessionIds.has(id);
+}
+
 function readStoredSession(): WorkoutSession | null {
     if (typeof window === 'undefined') return null;
     try {
@@ -70,6 +80,8 @@ export function useWorkoutLogging() {
     const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(readStoredSession);
     const [existingSession, setExistingSession] = useState<WorkoutSession | null>(null);
     const isEditingRef = useRef(false);
+    const abandonedRef = useRef(false);
+    const deletedSessionIdRef = useRef<string | null>(null);
 
     // Persist whenever currentSession changes (backup; we also persist in each setter below)
     useEffect(() => {
@@ -436,20 +448,42 @@ export function useWorkoutLogging() {
         }
     };
 
+    // Persist session to DB as soon as it's created (when they pick a day or name a freeform session)
+    useEffect(() => {
+        if (!currentSession || !user || !currentSession.id?.startsWith('temp-')) return;
+        let cancelled = false;
+        persistSessionToDb(currentSession, false)
+            .then((newId) => {
+                if (cancelled) return;
+                if (newId) {
+                    setCurrentSession((prev) =>
+                        prev && prev.id === currentSession.id ? { ...prev, id: newId } : prev
+                    );
+                }
+            })
+            .catch((err) => console.error('Persist on start failed:', err));
+        return () => {
+            cancelled = true;
+        };
+    }, [currentSession?.id, user?.id]);
+
     // Debounced auto-save: persist to DB without marking completed (3.5s after last change)
     const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const sessionRefForAutoSave = useRef<WorkoutSession | null>(null);
 
     useEffect(() => {
         if (!currentSession || !user) return;
+        abandonedRef.current = false;
         sessionRefForAutoSave.current = currentSession;
         if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
         autoSaveTimeoutRef.current = setTimeout(async () => {
             autoSaveTimeoutRef.current = null;
+            if (abandonedRef.current) return;
             const session = sessionRefForAutoSave.current;
             if (!session) return;
             try {
                 const newId = await persistSessionToDb(session, false);
+                if (abandonedRef.current) return;
                 if (newId && session.id?.startsWith('temp-')) {
                     setCurrentSession(prev => prev && prev.id === session.id ? { ...prev, id: newId } : prev);
                 }
@@ -461,6 +495,24 @@ export function useWorkoutLogging() {
             if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
         };
     }, [currentSession, user?.id]);
+
+    // When user leaves the page (navigates away), persist session so "workout in progress" shows on Dashboard.
+    // Skip if they explicitly cancelled (abandonSession) or if session is still temp (avoid RLS INSERT errors).
+    useEffect(() => {
+        return () => {
+            const session = sessionRefForAutoSave.current;
+            const abandoned = abandonedRef.current;
+            const deletedId = deletedSessionIdRef.current;
+            if (abandoned) return;
+            if (deletedId && session?.id === deletedId) return;
+            if (session?.id && isSessionDeleted(session.id)) return;
+            if (!session || !user || !session.id || session.id.startsWith('temp-')) return;
+            const sid = session.id;
+            persistSessionToDb(session, false).catch((err) => {
+                if (!isSessionDeleted(sid)) console.error('Save on leave failed:', err);
+            });
+        };
+    }, [user?.id]);
 
     // Visibility re-fetch: when user returns to tab, refresh session from DB
     useEffect(() => {
@@ -519,6 +571,7 @@ export function useWorkoutLogging() {
     }, [user?.id]);
 
     const clearSession = () => {
+        sessionRefForAutoSave.current = null;
         setCurrentSession(null);
         setExistingSession(null);
         isEditingRef.current = false;
@@ -529,6 +582,12 @@ export function useWorkoutLogging() {
 
     /** Clear local session and, if it was already persisted (auto-save), remove it from DB so it doesn't show as "workout in progress". */
     const abandonSession = async (): Promise<void> => {
+        abandonedRef.current = true;
+        sessionRefForAutoSave.current = null;
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+            autoSaveTimeoutRef.current = null;
+        }
         const session = currentSession;
         if (session?.id && !session.id.startsWith('temp-')) {
             try {
@@ -539,6 +598,20 @@ export function useWorkoutLogging() {
             }
         }
         clearSession();
+    };
+
+    /** Call before navigate after Delete/abandon so save-on-leave and auto-save skip. Pass sessionId when deleting so we never persist that session. */
+    const skipNextSaveOnLeave = (sessionIdToSkip?: string | null) => {
+        abandonedRef.current = true;
+        sessionRefForAutoSave.current = null;
+        if (sessionIdToSkip) {
+            deletedSessionIdRef.current = sessionIdToSkip;
+            markSessionDeleted(sessionIdToSkip);
+        }
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+            autoSaveTimeoutRef.current = null;
+        }
     };
 
     return {
@@ -554,6 +627,7 @@ export function useWorkoutLogging() {
         saveSession,
         clearSession,
         abandonSession,
+        skipNextSaveOnLeave,
         checkForExistingSession,
         swapExerciseAlternative,
         updateSessionDate
