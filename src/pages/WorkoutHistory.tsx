@@ -89,6 +89,7 @@ export default function WorkoutHistory() {
                 .from('workout_sessions')
                 .select('*')
                 .eq('user_id', user.id)
+                .order('session_date', { ascending: false })
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -511,7 +512,9 @@ export default function WorkoutHistory() {
                             />
                         ) : (
                             <div className="space-y-6">
-                                {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
+                                {Object.entries(sessionsByDate)
+                                    .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+                                    .map(([date, dateSessions]) => (
                                     <div key={date}>
                                         <div className="flex items-center justify-between mb-3">
                                             <h3 className="text-lg font-semibold text-white">

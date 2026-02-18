@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
 import { usePreviousLiftsForSession, formatPreviousSet } from '../features/workouts/usePreviousLift';
-import { useWorkoutProgram } from '../features/programs/useWorkoutProgram';
+import { useWorkoutProgram, type WorkoutProgram } from '../features/programs/useWorkoutProgram';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { NumberInput } from '../components/ui/NumberInput';
@@ -22,7 +22,7 @@ export default function WorkoutLogger() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { activeProgram } = useWorkoutProgram();
+    const { activeProgram, programs } = useWorkoutProgram();
     const {
         loading,
         currentSession,
@@ -36,12 +36,19 @@ export default function WorkoutLogger() {
         saveSession,
         clearSession,
         abandonSession,
-        swapExerciseAlternative
+        swapExerciseAlternative,
+        updateSessionDate
     } = useWorkoutLogging();
 
     const { previousLifts } = usePreviousLiftsForSession(currentSession ?? null);
 
     const isProgramFlow = location.state?.sessionType === 'program';
+
+    // Program that the current session belongs to (active or "different" program)
+    const programForCurrentSession = useMemo(() => {
+        if (!currentSession || currentSession.session_type !== 'program' || !currentSession.program_id) return activeProgram ?? null;
+        return programs?.find(p => p.id === currentSession.program_id) ?? activeProgram ?? null;
+    }, [currentSession?.id, currentSession?.session_type, currentSession?.program_id, programs, activeProgram]);
 
     const [showExercisePicker, setShowExercisePicker] = useState(false);
     const [showChangeDayModal, setShowChangeDayModal] = useState(false);
@@ -76,6 +83,12 @@ export default function WorkoutLogger() {
     const [inProgressSession, setInProgressSession] = useState<{ id: string; session_name: string; session_type: string; session_date: string; user_id: string; program_id?: string; week_number?: number; day_name?: string } | null>(null);
     const [inProgressLoading, setInProgressLoading] = useState(false);
     const [finishSaveError, setFinishSaveError] = useState<string | null>(null);
+    // Program day picker: which program's weeks/days we show; "different program" list visible; session date
+    const [programForDayPicker, setProgramForDayPicker] = useState<WorkoutProgram | null>(null);
+    const [showDifferentProgramList, setShowDifferentProgramList] = useState(false);
+    const [sessionDateProgram, setSessionDateProgram] = useState(() => new Date().toISOString().split('T')[0]);
+    const [sessionDateFreeform, setSessionDateFreeform] = useState(() => new Date().toISOString().split('T')[0]);
+    const [changeDayModalDate, setChangeDayModalDate] = useState(() => new Date().toISOString().split('T')[0]);
     // Mobile layout detection
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 767px)");
@@ -136,26 +149,16 @@ export default function WorkoutLogger() {
         return matchesSearch && matchesMuscleGroup;
     });
 
-    // Validate that program sessions match the active program
-    // Only validate if we're not editing a session from history
+    // Clear program session only if there is no active program (e.g. user deactivated all programs).
+    // Do NOT clear when session.program_id !== activeProgram.id: user may have chosen "Log from different program".
     useEffect(() => {
-        // Don't validate if we're editing a session from history
         if (location.state?.editSession) return;
-
-        // Only validate if we have a current session
         if (!currentSession || currentSession.session_type !== 'program') return;
-
-        if (activeProgram) {
-            // If the session's program_id doesn't match the active program, clear it
-            if (currentSession.program_id !== activeProgram.id) {
-                clearSession();
-            }
-        } else {
-            // If there's a program session but no active program, clear it
+        if (!activeProgram) {
             clearSession();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentSession?.id, currentSession?.program_id, activeProgram?.id, location.state?.editSession]);
+    }, [currentSession?.id, currentSession?.session_type, activeProgram?.id, location.state?.editSession]);
 
     // Check for edit session from WorkoutHistory
     useEffect(() => {
@@ -179,10 +182,20 @@ export default function WorkoutLogger() {
         if (isProgramFlow) return;
         if (!currentSession && !existingSession && !showSessionModal && !showExistingSessionModal && !location.state?.editSession) {
             setShowSessionModal(true);
+            setSessionDateFreeform(new Date().toISOString().split('T')[0]);
         } else if (existingSession && showSessionModal) {
             setShowSessionModal(false);
         }
     }, [isProgramFlow, currentSession, existingSession, showSessionModal, showExistingSessionModal, location.state]);
+
+    // When program day picker modal is shown, sync program and date to current defaults
+    useEffect(() => {
+        if (isProgramFlow && activeProgram && !currentSession) {
+            setProgramForDayPicker(activeProgram);
+            setShowDifferentProgramList(false);
+            setSessionDateProgram(new Date().toISOString().split('T')[0]);
+        }
+    }, [isProgramFlow, activeProgram, currentSession]);
 
     // When showing program day picker (e.g. after refresh), check for an in-progress session to offer "Workout in progress"
     useEffect(() => {
@@ -252,7 +265,7 @@ export default function WorkoutLogger() {
         if (!sessionName.trim()) return;
 
         try {
-            createFreeformSession(sessionName);
+            createFreeformSession(sessionName, sessionDateFreeform);
             setShowSessionModal(false);
         } catch (error) {
             console.error('Error creating session:', error);
@@ -274,12 +287,14 @@ export default function WorkoutLogger() {
 
     const handleStartNewSession = () => {
         setShowExistingSessionModal(false);
+        setSessionDateFreeform(new Date().toISOString().split('T')[0]);
         setShowSessionModal(true);
     };
 
     const handleSelectProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[]; alternatives?: string[] }[]) => {
-        if (!activeProgram || !activeProgram.id || !activeProgram.name) {
-            console.error('Cannot create session: active program is invalid', activeProgram);
+        const program = programForDayPicker ?? activeProgram;
+        if (!program || !program.id || !program.name) {
+            console.error('Cannot create session: program is invalid', program);
             return;
         }
         const mapped: ProgramDayExercise[] = dayExercises.map((ex) => ({
@@ -290,24 +305,25 @@ export default function WorkoutLogger() {
             alternatives: ex.alternatives || []
         }));
         try {
-            createProgramSession(activeProgram.id, weekNumber, dayName, mapped, activeProgram.weeks.length, activeProgram.structure);
+            createProgramSession(program.id, weekNumber, dayName, mapped, program.weeks.length, program.structure, sessionDateProgram);
         } catch (error) {
             console.error('Error creating program session:', error);
         }
     };
 
     const handleChangeProgramDay = (weekNumber: number, dayName: string, dayExercises: { exerciseId: string; exerciseName: string; sets: number; reps: number[]; alternatives?: string[] }[]) => {
-        if (!activeProgram || !currentSession) return;
+        const program = programForCurrentSession;
+        if (!program || !currentSession) return;
 
-        // Clear current session and create new one with the new day
+        // Clear current session and create new one with the new day and chosen date
         clearSession();
-        createProgramSession(activeProgram.id, weekNumber, dayName, dayExercises.map((ex) => ({
+        createProgramSession(program.id, weekNumber, dayName, dayExercises.map((ex) => ({
             exercise_id: ex.exerciseId,
             exercise_name: ex.exerciseName,
             sets: ex.sets,
             reps: ex.reps?.length ? ex.reps : [10, 10, 10],
             alternatives: ex.alternatives || []
-        })), activeProgram.weeks.length, activeProgram.structure);
+        })), program.weeks.length, program.structure, changeDayModalDate);
 
         setShowChangeDayModal(false);
     };
@@ -477,9 +493,17 @@ export default function WorkoutLogger() {
                     currentSession ? (
                         <>
                             Session: {currentSession.session_name}
-                            {currentSession.session_type === 'program' && activeProgram && (
+                            {currentSession.session_date && (
+                                <span className="text-gray-400 font-normal ml-1">
+                                    · {new Date(currentSession.session_date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </span>
+                            )}
+                            {currentSession.session_type === 'program' && programForCurrentSession && (
                                 <button
-                                    onClick={() => setShowChangeDayModal(true)}
+                                    onClick={() => {
+                                        setChangeDayModalDate(currentSession.session_date ?? new Date().toISOString().split('T')[0]);
+                                        setShowChangeDayModal(true);
+                                    }}
                                     className="ml-2 text-cyan-400 hover:text-cyan-300 transition text-sm underline"
                                 >
                                     Change
@@ -638,6 +662,15 @@ export default function WorkoutLogger() {
                         onKeyPress={(e) => e.key === 'Enter' && handleCreateSession()}
                         autoFocus
                     />
+                    <div className="mt-4 mb-4">
+                        <label className="block text-gray-300 text-sm font-medium mb-2">Session date</label>
+                        <input
+                            type="date"
+                            value={sessionDateFreeform}
+                            onChange={(e) => setSessionDateFreeform(e.target.value)}
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                        />
+                    </div>
                     <div className="flex gap-3 mt-4">
                         <Button
                             onClick={() => navigate('/')}
@@ -663,11 +696,11 @@ export default function WorkoutLogger() {
             <Modal
                 isOpen={isProgramFlow && !!activeProgram && !currentSession && !loading}
                 onClose={() => navigate('/')}
-                title={`Log workout: ${activeProgram?.name ?? 'Program'}`}
+                title={showDifferentProgramList ? 'Log from different program' : `Log workout: ${programForDayPicker?.name ?? activeProgram?.name ?? 'Program'}`}
                 maxWidth="max-w-lg"
             >
                 <div>
-                    {inProgressSession && (
+                    {inProgressSession && !showDifferentProgramList && (
                         <div className="mb-4 p-3 bg-cyan-900/30 border border-cyan-700/50 rounded-lg">
                             <p className="text-gray-300 text-sm mb-2">You have a workout in progress.</p>
                             <Button
@@ -680,30 +713,74 @@ export default function WorkoutLogger() {
                             </Button>
                         </div>
                     )}
-                    <p className="text-gray-300 mb-4">
-                        Choose the week and day you're doing today.
-                    </p>
-                    <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                        {activeProgram?.weeks.map((week) => (
-                            <div key={week.id} className="bg-gray-800 rounded-lg p-3">
-                                <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
-                                <div className="flex flex-wrap gap-2">
-                                    {week.days.filter((day) => !day.is_rest_day).map((day) => (
-                                        <button
-                                            key={day.id}
-                                            onClick={() => handleSelectProgramDay(week.weekNumber, day.name, day.exercises)}
-                                            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm"
-                                        >
-                                            {day.name}
-                                            {day.exercises.length > 0 && (
-                                                <span className="ml-1 text-cyan-200">({day.exercises.length})</span>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
+                    {showDifferentProgramList ? (
+                        <>
+                            <p className="text-gray-300 mb-4">Choose a program to log this workout from.</p>
+                            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                                {programs?.map((program) => (
+                                    <button
+                                        key={program.id}
+                                        onClick={() => {
+                                            setProgramForDayPicker(program);
+                                            setShowDifferentProgramList(false);
+                                        }}
+                                        className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-left text-gray-200 rounded-lg transition flex items-center justify-between"
+                                    >
+                                        <span className="font-medium">{program.name}</span>
+                                        {program.id === activeProgram?.id && (
+                                            <span className="text-cyan-400 text-sm">(active)</span>
+                                        )}
+                                    </button>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                            {programs?.length === 0 && (
+                                <p className="text-gray-500 text-sm">No programs yet. Create one from Programs.</p>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+                                <label className="text-gray-300 text-sm font-medium shrink-0">Session date</label>
+                                <input
+                                    type="date"
+                                    value={sessionDateProgram}
+                                    onChange={(e) => setSessionDateProgram(e.target.value)}
+                                    className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowDifferentProgramList(true)}
+                                className="text-cyan-400 hover:text-cyan-300 text-sm mb-4 underline"
+                            >
+                                Log from different program
+                            </button>
+                            <p className="text-gray-300 mb-4">
+                                Choose the week and day you're doing.
+                            </p>
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                                {programForDayPicker?.weeks.map((week) => (
+                                    <div key={week.id} className="bg-gray-800 rounded-lg p-3">
+                                        <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {week.days.filter((day) => !day.is_rest_day).map((day) => (
+                                                <button
+                                                    key={day.id}
+                                                    onClick={() => handleSelectProgramDay(week.weekNumber, day.name, day.exercises)}
+                                                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm"
+                                                >
+                                                    {day.name}
+                                                    {day.exercises.length > 0 && (
+                                                        <span className="ml-1 text-cyan-200">({day.exercises.length})</span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                     <div className="flex gap-3 mt-4">
                         <Button
                             onClick={() => navigate('/')}
@@ -849,11 +926,20 @@ export default function WorkoutLogger() {
                 maxWidth="max-w-lg"
             >
                 <div>
+                    <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <label className="text-gray-300 text-sm font-medium shrink-0">Session date</label>
+                        <input
+                            type="date"
+                            value={changeDayModalDate}
+                            onChange={(e) => setChangeDayModalDate(e.target.value)}
+                            className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                        />
+                    </div>
                     <p className="text-gray-300 mb-4">
                         Select a different day. This will replace your current exercises.
                     </p>
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                        {activeProgram?.weeks.map((week) => (
+                        {programForCurrentSession?.weeks.map((week) => (
                             <div key={week.id} className="bg-gray-800 rounded-lg p-3">
                                 <div className="text-cyan-400 font-semibold mb-2">Week {week.weekNumber}</div>
                                 <div className="flex flex-wrap gap-2">
@@ -876,12 +962,21 @@ export default function WorkoutLogger() {
                             </div>
                         ))}
                     </div>
-                    <div className="flex gap-3 mt-4">
+                    <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             onClick={() => setShowChangeDayModal(false)}
-                            className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                            className="flex-1 min-w-[100px] px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
                         >
                             Cancel
+                        </button>
+                        <button
+                            onClick={() => {
+                                updateSessionDate(changeDayModalDate);
+                                setShowChangeDayModal(false);
+                            }}
+                            className="flex-1 min-w-[100px] px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition"
+                        >
+                            Update date only
                         </button>
                     </div>
                 </div>
@@ -931,7 +1026,7 @@ export default function WorkoutLogger() {
                                                 exerciseName={exercise.exercise_name}
                                                 variant="icon"
                                                 programId={currentSession?.session_type === 'program' ? currentSession.program_id : undefined}
-                                                programName={currentSession?.session_type === 'program' && activeProgram ? activeProgram.name : undefined}
+                                                programName={currentSession?.session_type === 'program' && programForCurrentSession ? programForCurrentSession.name : undefined}
                                                 dayName={currentSession?.day_name}
                                             />
                                             <button
