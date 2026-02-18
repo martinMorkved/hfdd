@@ -755,6 +755,7 @@ export default function WorkoutLogger() {
                                             value={rep}
                                             onChange={(value) => updateRep(index, value)}
                                             min={1}
+                                            inputMode="numeric"
                                             className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
                                         />
                                         {exerciseForm.reps.length > 1 && (
@@ -786,6 +787,7 @@ export default function WorkoutLogger() {
                             onChange={(value) => setExerciseForm(prev => ({ ...prev, weight: value }))}
                             min={0}
                             step={0.5}
+                            inputMode="decimal"
                             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-cyan-500 focus:outline-none"
                         />
                     </div>
@@ -1020,6 +1022,7 @@ export default function WorkoutLogger() {
                                                                                 }}
                                                                                 min={0}
                                                                                 step={0.5}
+                                                                                inputMode="decimal"
                                                                                 className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
                                                                             />
                                                                         ) : (
@@ -1036,6 +1039,7 @@ export default function WorkoutLogger() {
                                                                                     handleUpdateExercise(exercise.id, { reps: newReps });
                                                                                 }}
                                                                                 min={1}
+                                                                                inputMode="numeric"
                                                                                 className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-center focus:border-cyan-500 focus:outline-none"
                                                                             />
                                                                         ) : (

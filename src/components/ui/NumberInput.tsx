@@ -9,6 +9,8 @@ interface NumberInputProps {
     placeholder?: string;
     className?: string;
     disabled?: boolean;
+    /** On mobile, use "numeric" for integers (reps) or "decimal" for weights. Default "decimal". */
+    inputMode?: 'numeric' | 'decimal';
 }
 
 export const NumberInput: React.FC<NumberInputProps> = ({
@@ -18,7 +20,8 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     max,
     placeholder,
     className = "",
-    disabled = false
+    disabled = false,
+    inputMode = 'decimal',
 }) => {
     const [displayValue, setDisplayValue] = useState(value.toString());
 
@@ -89,6 +92,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     return (
         <input
             type="text"
+            inputMode={inputMode}
             value={displayValue}
             onChange={handleChange}
             onBlur={handleBlur}
