@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWorkoutLogging, type WorkoutExercise, type ProgramDayExercise } from '../features/workouts/useWorkoutLogging';
 import { usePreviousLiftsForSession, formatPreviousSet } from '../features/workouts/usePreviousLift';
@@ -37,6 +37,7 @@ export default function WorkoutLogger() {
         saveSession,
         clearSession,
         abandonSession,
+        skipNextSaveOnLeave,
         swapExerciseAlternative,
         updateSessionDate
     } = useWorkoutLogging();
@@ -197,6 +198,22 @@ export default function WorkoutLogger() {
             setSessionDateProgram(new Date().toISOString().split('T')[0]);
         }
     }, [isProgramFlow, activeProgram, currentSession]);
+
+    // When navigating here to pick a program day ("Log from Program"), clear only the session that was restored from storage on mount so the day picker shows (do not clear a session the user just created by picking a day)
+    const sessionIdOnMountRef = useRef<string | null | undefined>(undefined);
+    useEffect(() => {
+        if (sessionIdOnMountRef.current === undefined) {
+            sessionIdOnMountRef.current = currentSession?.id ?? null;
+        }
+    }, []);
+    useEffect(() => {
+        if (sessionIdOnMountRef.current === undefined) return;
+        const isRestoredSession = sessionIdOnMountRef.current != null && currentSession?.id === sessionIdOnMountRef.current;
+        if (isProgramFlow && currentSession && !location.state?.editSession && isRestoredSession) {
+            sessionIdOnMountRef.current = null;
+            clearSession();
+        }
+    }, [isProgramFlow, currentSession, location.state?.editSession]);
 
     // When showing program day picker (e.g. after refresh), check for an in-progress session to offer "Workout in progress"
     useEffect(() => {
@@ -428,12 +445,15 @@ export default function WorkoutLogger() {
 
     const confirmDeleteWorkout = async () => {
         if (!currentSession) return;
+        const sessionId = currentSession.id;
+        skipNextSaveOnLeave(sessionId);
+        clearSession();
         try {
             setDeleteLoading(true);
-            const sessionId = currentSession.id;
-            await supabase.from('workout_logs').delete().eq('session_id', sessionId);
-            await supabase.from('workout_sessions').delete().eq('id', sessionId);
-            clearSession();
+            if (sessionId && !sessionId.startsWith('temp-')) {
+                await supabase.from('workout_logs').delete().eq('session_id', sessionId);
+                await supabase.from('workout_sessions').delete().eq('id', sessionId);
+            }
             setShowDeleteModal(false);
             navigate('/history');
         } catch (error) {
@@ -517,15 +537,17 @@ export default function WorkoutLogger() {
                 }
                 actions={
                     <div className="flex flex-wrap gap-2 sm:gap-3 flex-shrink-0">
-                        <Button
-                            onClick={async () => {
-                                await abandonSession();
-                                navigate(location.state?.editSession ? '/history' : '/');
-                            }}
-                            variant="secondary"
-                        >
-                            Cancel
-                        </Button>
+                        {!location.state?.editSession && (
+                            <Button
+                                onClick={async () => {
+                                    await abandonSession();
+                                    navigate('/');
+                                }}
+                                variant="secondary"
+                            >
+                                Cancel
+                            </Button>
+                        )}
                         {currentSession && location.state?.editSession && (
                             <Button
                                 onClick={handleDeleteWorkout}

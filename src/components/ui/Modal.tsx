@@ -1,5 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from './Button';
+
+let openModalCount = 0;
+
+function lockBodyScroll() {
+    openModalCount++;
+    if (openModalCount === 1) {
+        const scrollY = window.scrollY;
+        document.body.setAttribute('data-modal-scroll-lock', String(scrollY));
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.touchAction = 'none';
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.touchAction = 'none';
+        const root = document.getElementById('root');
+        if (root) {
+            root.style.overflow = 'hidden';
+            root.style.touchAction = 'none';
+        }
+    }
+}
+
+function unlockBodyScroll() {
+    openModalCount = Math.max(0, openModalCount - 1);
+    if (openModalCount === 0) {
+        const scrollY = document.body.getAttribute('data-modal-scroll-lock');
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.touchAction = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.touchAction = '';
+        document.body.removeAttribute('data-modal-scroll-lock');
+        const root = document.getElementById('root');
+        if (root) {
+            root.style.overflow = '';
+            root.style.touchAction = '';
+        }
+        if (scrollY !== null) {
+            window.scrollTo(0, Number(scrollY));
+        }
+    }
+}
 
 interface ModalProps {
     isOpen: boolean;
@@ -24,6 +71,17 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     const modalRef = useRef<HTMLDivElement>(null);
     const [isInteracting, setIsInteracting] = useState(false);
 
+    useLayoutEffect(() => {
+        if (isOpen) {
+            lockBodyScroll();
+        } else {
+            unlockBodyScroll();
+        }
+        return () => {
+            if (isOpen) unlockBodyScroll();
+        };
+    }, [isOpen]);
+
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
@@ -33,15 +91,12 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
         if (isOpen) {
             document.addEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'hidden';
         } else {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
         }
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
         };
     }, [isOpen, onClose]);
 
