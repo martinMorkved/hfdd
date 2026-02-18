@@ -161,17 +161,18 @@ export function useWorkoutLogging() {
         setExistingSession(null);
     };
 
-    const createFreeformSession = (sessionName: string): string => {
+    const createFreeformSession = (sessionName: string, sessionDate?: string): string => {
         if (!user) throw new Error('User not authenticated');
 
         // Create session in memory only (saved to DB on "Finish Workout")
         const tempId = `temp-${Date.now()}`;
+        const dateStr = sessionDate ?? new Date().toISOString().split('T')[0];
         const newSession: WorkoutSession = {
             id: tempId,
             user_id: user.id,
             session_type: 'freeform',
             session_name: sessionName,
-            session_date: new Date().toISOString().split('T')[0],
+            session_date: dateStr,
             exercises: []
         };
 
@@ -186,7 +187,8 @@ export function useWorkoutLogging() {
         dayName: string,
         dayExercises: ProgramDayExercise[],
         totalWeeks?: number,
-        programStructure?: 'weekly' | 'rotating' | 'block' | 'frequency'
+        programStructure?: 'weekly' | 'rotating' | 'block' | 'frequency',
+        sessionDateParam?: string
     ): string => {
         if (!user) throw new Error('User not authenticated');
 
@@ -205,7 +207,7 @@ export function useWorkoutLogging() {
             // Multi-week programs (weekly, frequency): show "Week X – Day Name"
             sessionName = `Week ${weekNumber} – ${dayName}`;
         }
-        const sessionDate = new Date().toISOString().split('T')[0];
+        const sessionDate = sessionDateParam ?? new Date().toISOString().split('T')[0];
 
         const exercises: WorkoutExercise[] = dayExercises.map((ex, index) => ({
             id: `temp-ex-${Date.now()}-${index}`,
@@ -279,6 +281,11 @@ export function useWorkoutLogging() {
             ...prev,
             exercises: prev.exercises.filter(ex => ex.id !== entryId)
         } : null);
+    };
+
+    const updateSessionDate = (sessionDate: string) => {
+        if (!currentSession) throw new Error('No active session');
+        setCurrentSession(prev => prev ? { ...prev, session_date: sessionDate } : null);
     };
 
     const swapExerciseAlternative = async (entryId: string, alternativeName: string) => {
@@ -548,6 +555,7 @@ export function useWorkoutLogging() {
         clearSession,
         abandonSession,
         checkForExistingSession,
-        swapExerciseAlternative
+        swapExerciseAlternative,
+        updateSessionDate
     };
 }
