@@ -20,6 +20,8 @@ interface WorkoutSession {
     session_type: 'program' | 'freeform';
     created_at: string;
     completed_at: string | null;
+    program_id?: string | null;
+    program_name?: string | null;
 }
 
 interface WorkoutLog {
@@ -87,13 +89,21 @@ export default function WorkoutHistory() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('workout_sessions')
-                .select('*')
+                .select(`
+                    *,
+                    workout_programs(name)
+                `)
                 .eq('user_id', user.id)
                 .order('session_date', { ascending: false })
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setSessions(data || []);
+            type Row = Omit<WorkoutSession, 'program_name'> & { workout_programs: { name: string } | null };
+            const rows = (data || []) as Row[];
+            setSessions(rows.map((row: Row) => {
+                const { workout_programs, ...rest } = row;
+                return { ...rest, program_name: workout_programs?.name ?? null };
+            }));
         } catch (error) {
             console.error('Error loading workout sessions:', error);
         } finally {
@@ -556,7 +566,7 @@ export default function WorkoutHistory() {
                                                             )}
                                                         </div>
                                                         <div className="text-xs opacity-80">
-                                                            {session.session_type === 'freeform' ? 'Free-form' : 'Program'}
+                                                            {session.session_type === 'freeform' ? 'Free-form' : (session.program_name ? `Program: ${session.program_name}` : 'Program')}
                                                         </div>
                                                     </button>
                                                     <button
@@ -788,7 +798,7 @@ export default function WorkoutHistory() {
                                             {session.session_name}
                                         </div>
                                         <div className="text-sm text-gray-400">
-                                            {session.session_type === 'freeform' ? 'Free-form' : 'Program'} • Session {index + 1}
+                                            {session.session_type === 'freeform' ? 'Free-form' : (session.program_name ? `Program: ${session.program_name}` : 'Program')} • Session {index + 1}
                                         </div>
                                     </label>
                                 </div>
@@ -816,7 +826,7 @@ export default function WorkoutHistory() {
                                         {session.session_name}
                                     </div>
                                     <div className="text-sm text-gray-400">
-                                        {session.session_type === 'freeform' ? 'Free-form' : 'Program'} • Session {index + 1}
+                                        {session.session_type === 'freeform' ? 'Free-form' : (session.program_name ? `Program: ${session.program_name}` : 'Program')} • Session {index + 1}
                                     </div>
                                     {selectedSessionsForMerge.size > 0 && (
                                         <div className="text-xs text-cyan-400 mt-1">
@@ -882,7 +892,7 @@ export default function WorkoutHistory() {
                                     {session.session_name}
                                 </div>
                                 <div className="text-sm text-gray-400">
-                                    {session.session_type === 'freeform' ? 'Free-form' : 'Program'}
+                                    {session.session_type === 'freeform' ? 'Free-form' : (session.program_name ? `Program: ${session.program_name}` : 'Program')}
                                 </div>
                             </button>
                         ))}
@@ -916,7 +926,7 @@ export default function WorkoutHistory() {
                                 {sessionToDelete.session_name}
                             </div>
                             <div className="text-gray-400 text-sm">
-                                {formatDate(sessionToDelete.session_date)} • {sessionToDelete.session_type === 'freeform' ? 'Free-form' : 'Program'}
+                                {formatDate(sessionToDelete.session_date)} • {sessionToDelete.session_type === 'freeform' ? 'Free-form' : (sessionToDelete.program_name ? `Program: ${sessionToDelete.program_name}` : 'Program')}
                             </div>
                         </div>
                     )}

@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { NumberInput } from '../components/ui/NumberInput';
 import { TextInput } from '../components/ui/TextInput';
+import { DateInput } from '../components/ui/DateInput';
 import { TextArea } from '../components/ui/TextArea';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -663,12 +664,10 @@ export default function WorkoutLogger() {
                         autoFocus
                     />
                     <div className="mt-4 mb-4">
-                        <label className="block text-gray-300 text-sm font-medium mb-2">Session date</label>
-                        <input
-                            type="date"
+                        <DateInput
+                            label="Session date"
                             value={sessionDateFreeform}
                             onChange={(e) => setSessionDateFreeform(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                         />
                     </div>
                     <div className="flex gap-3 mt-4">
@@ -741,11 +740,10 @@ export default function WorkoutLogger() {
                         <>
                             <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
                                 <label className="text-gray-300 text-sm font-medium shrink-0">Session date</label>
-                                <input
-                                    type="date"
+                                <DateInput
                                     value={sessionDateProgram}
                                     onChange={(e) => setSessionDateProgram(e.target.value)}
-                                    className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    className="sm:w-auto min-w-0"
                                 />
                             </div>
                             <button
@@ -928,11 +926,10 @@ export default function WorkoutLogger() {
                 <div>
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
                         <label className="text-gray-300 text-sm font-medium shrink-0">Session date</label>
-                        <input
-                            type="date"
+                        <DateInput
                             value={changeDayModalDate}
                             onChange={(e) => setChangeDayModalDate(e.target.value)}
-                            className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="sm:w-auto min-w-0"
                         />
                     </div>
                     <p className="text-gray-300 mb-4">
